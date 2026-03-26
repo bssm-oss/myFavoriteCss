@@ -98,6 +98,7 @@ The sample file is:
 
 ### Documentation map
 
+- [AGENTS.md](./AGENTS.md)
 - [docs/README.md](./docs/README.md)
 - [docs/architecture.md](./docs/architecture.md)
 - [docs/api-contracts.md](./docs/api-contracts.md)
@@ -230,6 +231,7 @@ pnpm build
 
 ### 문서 인덱스
 
+- [AGENTS.md](./AGENTS.md)
 - [docs/README.md](./docs/README.md)
 - [docs/architecture.md](./docs/architecture.md)
 - [docs/api-contracts.md](./docs/api-contracts.md)
