@@ -1,101 +1,83 @@
-# Morph UI architecture
+# Architecture
 
 ## English
 
-Morph UI separates page execution, extension orchestration, and server-owned provider logic.
+Morph UI now has two runtime surfaces and no dedicated backend.
 
-### Main goals
-
-- reversible UI transformation
-- fast cache-hit revisits
-- clear privacy boundaries
-- honest provider capability reporting
-
-### Monorepo responsibilities
+### Surfaces
 
 - `apps/extension`
-  MV3 extension, side panel, background worker, content scripts
-- `apps/server`
-  Fastify API, auth, provider orchestration, remote cache, feedback
+  the Chrome MV3 product runtime
 - `apps/web`
-  help pages, privacy pages, local fixtures
+  help/privacy pages and deterministic fixture pages
+
+### Shared packages
+
 - `packages/shared`
-  shared Zod contracts
+  Zod-first contracts and types
 - `packages/config`
-  normalization rules and seeded defaults
+  normalization, sensitivity heuristics, seeded profiles, default models
 - `packages/cache`
-  cache matching and TTL helpers
+  similarity scoring and TTL logic
 - `packages/ai`
-  provider abstraction and transform compilation
+  browser-safe provider planning and transform compilation
 - `packages/ui`
-  shared UI primitives
+  shared React UI components
 
-### Runtime flow
+### Main execution flow
 
-1. User enables a site from the side panel
-2. Extension requests optional host permission
-3. Content script analyzes the page
-4. Background checks local cache
-5. Remote cache is checked if local cache misses and privacy allows it
-6. Server-assisted provider planning happens only when needed
-7. The server validates and compiles the plan
-8. The extension previews or applies it
-9. Accepted artifacts are persisted locally and optionally remotely
+1. User enables a site.
+2. Content script builds a `PageSummary` and fingerprint.
+3. Background worker checks local IndexedDB cache.
+4. If cache is strong enough, Morph UI applies immediately.
+5. If cache misses and privacy rules allow it, the background worker calls the selected provider directly with the structured page summary.
+6. The returned plan is validated, compiled, previewed, and stored locally.
 
-### Design principles
+### Key design choices
 
-- prefer CSS over DOM mutation
-- prefer wrappers over destructive edits
-- validate provider output before apply
-- keep provider secrets server-side
-- treat logging as non-blocking, not part of the success path
+- no product account system
+- no Morph UI backend cache
+- no server-owned provider credentials
+- user-supplied provider API keys stored only in `chrome.storage.local`
+- local cache first, provider second
 
 ## 한국어
 
-Morph UI는 페이지 실행, 확장 오케스트레이션, 서버 소유 provider 로직을 분리해서 설계했습니다.
+Morph UI는 이제 두 개의 런타임 surface만 가지며, 전용 백엔드는 없습니다.
 
-### 주요 목표
-
-- 되돌릴 수 있는 UI 변환
-- 빠른 캐시 재방문
-- 명확한 privacy 경계
-- 정직한 provider capability 표시
-
-### 모노레포 책임 분리
+### Surface
 
 - `apps/extension`
-  MV3 확장, 사이드패널, 백그라운드 워커, 콘텐츠 스크립트
-- `apps/server`
-  Fastify API, 인증, provider 오케스트레이션, 원격 캐시, 피드백
+  Chrome MV3 제품 런타임
 - `apps/web`
-  도움말/프라이버시 페이지와 로컬 fixture
+  help/privacy 페이지와 deterministic fixture 페이지
+
+### 공유 패키지
+
 - `packages/shared`
-  공용 Zod 계약
+  Zod 기반 공용 계약과 타입
 - `packages/config`
-  정규화 규칙과 시드 기본값
+  정규화, 민감도 heuristic, 시드 프로필, 기본 모델
 - `packages/cache`
-  캐시 매칭과 TTL 헬퍼
+  similarity scoring과 TTL 로직
 - `packages/ai`
-  provider 추상화와 transform 컴파일
+  브라우저 안전 provider planning과 transform 컴파일
 - `packages/ui`
-  공용 UI 프리미티브
+  공용 React UI 컴포넌트
 
-### 런타임 흐름
+### 메인 실행 흐름
 
-1. 사용자가 사이드패널에서 사이트를 enable
-2. 확장이 optional host permission 요청
-3. 콘텐츠 스크립트가 페이지 분석
-4. 백그라운드가 로컬 캐시 조회
-5. 로컬 미스이고 privacy가 허용하면 원격 캐시 조회
-6. 필요할 때만 서버 보조 provider planning 실행
-7. 서버가 plan을 검증하고 컴파일
-8. 확장이 preview 또는 apply
-9. 승인된 아티팩트는 로컬과 선택적 원격 저장소에 저장
+1. 사용자가 사이트를 enable합니다.
+2. content script가 `PageSummary`와 fingerprint를 만듭니다.
+3. background worker가 로컬 IndexedDB 캐시를 확인합니다.
+4. 캐시가 충분히 맞으면 즉시 적용합니다.
+5. 캐시 miss이고 privacy 규칙이 허용하면 background worker가 선택된 provider를 직접 호출합니다.
+6. 반환된 plan을 검증, 컴파일, preview 후 로컬에 저장합니다.
 
-### 설계 원칙
+### 핵심 설계 선택
 
-- DOM 변경보다 CSS를 우선
-- 파괴적 편집보다 wrapper를 우선
-- apply 전에 provider 출력을 검증
-- provider 비밀키는 서버에만 유지
-- 로깅은 성공 경로의 필수 요소가 아니어야 함
+- 제품 계정 시스템 없음
+- Morph UI 백엔드 캐시 없음
+- 서버 소유 provider credential 없음
+- 사용자가 제공한 provider API key는 `chrome.storage.local`에만 저장
+- local cache 우선, provider 호출은 그 다음

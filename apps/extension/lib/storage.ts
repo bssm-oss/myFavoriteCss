@@ -1,18 +1,26 @@
+import { maskApiKey } from "@morph-ui/ai";
 import { seededProfiles } from "@morph-ui/config";
 import {
   diagnosticsSchema,
   preferenceProfileSchema,
+  providerCapabilitiesSchema,
+  providerConfigSummarySchema,
+  providerLocalConfigSchema,
+  providerSchema,
   siteSettingSchema,
   syncedSettingsSchema,
   type Diagnostics,
   type PreferenceProfile,
-  type SessionExchangeResponse,
+  type Provider,
+  type ProviderCapabilities,
+  type ProviderConfigSummary,
+  type ProviderLocalConfig,
   type SiteSetting,
   type SyncedSettings
 } from "@morph-ui/shared";
 
 const LOCAL_KEYS = {
-  session: "authSession",
+  providerConfigs: "providerConfigsByProvider",
   siteSettings: "siteSettingsByOrigin",
   lastCacheStatusByTab: "lastCacheStatusByTab",
   selectedProfileByOrigin: "selectedProfileByOrigin",
@@ -25,7 +33,7 @@ const SYNC_KEYS = {
 } as const;
 
 type LocalStorageShape = {
-  [LOCAL_KEYS.session]?: SessionExchangeResponse | null;
+  [LOCAL_KEYS.providerConfigs]?: Partial<Record<Provider, ProviderLocalConfig>>;
   [LOCAL_KEYS.siteSettings]?: Record<string, SiteSetting>;
   [LOCAL_KEYS.lastCacheStatusByTab]?: Record<string, string>;
   [LOCAL_KEYS.selectedProfileByOrigin]?: Record<string, string>;
@@ -93,14 +101,93 @@ export async function updateSyncedSettings(settings: Partial<SyncedSettings>): P
   return next;
 }
 
-export async function getSession(): Promise<SessionExchangeResponse | null> {
-  const value = await chrome.storage.local.get(LOCAL_KEYS.session) as LocalStorageShape;
-  return (value[LOCAL_KEYS.session] ?? null) as SessionExchangeResponse | null;
+export async function getProviderConfigs(): Promise<Partial<Record<Provider, ProviderLocalConfig>>> {
+  const value = await chrome.storage.local.get(LOCAL_KEYS.providerConfigs) as LocalStorageShape;
+  const raw = value[LOCAL_KEYS.providerConfigs] ?? {};
+  return Object.fromEntries(
+    Object.entries(raw).map(([provider, config]) => [provider, providerLocalConfigSchema.parse(config)])
+  ) as Partial<Record<Provider, ProviderLocalConfig>>;
 }
 
-export async function setSession(session: SessionExchangeResponse | null) {
+export async function getProviderConfig(provider: Provider): Promise<ProviderLocalConfig | null> {
+  const configs = await getProviderConfigs();
+  return configs[provider] ?? null;
+}
+
+export async function saveProviderConfig(input: {
+  provider: Provider;
+  apiKey: string;
+  model: string;
+  lastValidatedAt?: string | null;
+  lastError?: string | null;
+}): Promise<ProviderLocalConfig> {
+  const current = await getProviderConfigs();
+  const now = new Date().toISOString();
+  const nextConfig = providerLocalConfigSchema.parse({
+    provider: input.provider,
+    apiKey: input.apiKey,
+    model: input.model,
+    configuredAt: current[input.provider]?.configuredAt ?? now,
+    updatedAt: now,
+    lastValidatedAt: input.lastValidatedAt ?? current[input.provider]?.lastValidatedAt ?? null,
+    lastError: input.lastError ?? null
+  });
+
   await chrome.storage.local.set({
-    [LOCAL_KEYS.session]: session
+    [LOCAL_KEYS.providerConfigs]: {
+      ...current,
+      [input.provider]: nextConfig
+    }
+  });
+
+  return nextConfig;
+}
+
+export async function setProviderConfigError(provider: Provider, error: string | null) {
+  const configs = await getProviderConfigs();
+  const current = configs[provider];
+  if (!current) {
+    return;
+  }
+
+  await chrome.storage.local.set({
+    [LOCAL_KEYS.providerConfigs]: {
+      ...configs,
+      [provider]: providerLocalConfigSchema.parse({
+        ...current,
+        updatedAt: new Date().toISOString(),
+        lastError: error
+      })
+    }
+  });
+}
+
+export async function removeProviderConfig(provider: Provider) {
+  const configs = await getProviderConfigs();
+  delete configs[provider];
+  await chrome.storage.local.set({
+    [LOCAL_KEYS.providerConfigs]: configs
+  });
+}
+
+export async function getProviderConfigSummaries(capabilities: ProviderCapabilities[]): Promise<ProviderConfigSummary[]> {
+  const capabilityMap = Object.fromEntries(
+    capabilities.map((capability) => [providerSchema.parse(capability.provider), providerCapabilitiesSchema.parse(capability)])
+  ) as Record<Provider, ProviderCapabilities>;
+  const configs = await getProviderConfigs();
+
+  return providerSchema.options.map((provider) => {
+    const config = configs[provider] ?? null;
+    return providerConfigSummarySchema.parse({
+      provider,
+      configured: Boolean(config),
+      model: config?.model ?? null,
+      maskedKey: config ? maskApiKey(config.apiKey) : null,
+      configuredAt: config?.configuredAt ?? null,
+      updatedAt: config?.updatedAt ?? null,
+      lastValidatedAt: config?.lastValidatedAt ?? null,
+      lastError: config?.lastError ?? capabilityMap[provider]?.limitationReason ?? null
+    });
   });
 }
 

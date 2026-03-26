@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 
-import type { PreferenceProfile, StructuredPreferences, SyncedSettings } from "@morph-ui/shared";
+import { defaultProviderModels } from "@morph-ui/config";
+import type {
+  PreferenceProfile,
+  Provider,
+  ProviderConfigSummary,
+  StructuredPreferences,
+  SyncedSettings
+} from "@morph-ui/shared";
 import {
   AppShell,
   Badge,
@@ -144,6 +151,15 @@ function PrivacyControls({
 }) {
   return (
     <div className="morph-grid">
+      <Field label="Default provider">
+        <Select
+          value={settings.defaultProvider}
+          onChange={(event) => onChange({ defaultProvider: event.target.value as Provider })}
+        >
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Gemini</option>
+        </Select>
+      </Field>
       <Field label="Privacy mode">
         <Select
           value={settings.privacyMode}
@@ -151,7 +167,7 @@ function PrivacyControls({
         >
           <option value="strict-local">Strict local</option>
           <option value="local-first">Local first</option>
-          <option value="sync-enabled">Sync enabled</option>
+          <option value="sync-enabled">Provider assisted</option>
         </Select>
       </Field>
       <Toggle
@@ -166,6 +182,92 @@ function PrivacyControls({
         description="Shows fingerprint and cache debugging details."
         onChange={(checked) => onChange({ diagnosticsEnabled: checked })}
       />
+    </div>
+  );
+}
+
+function ProviderConfiguration({
+  providerConfigs,
+  defaultProvider,
+  onSave,
+  onClear
+}: {
+  providerConfigs: ProviderConfigSummary[];
+  defaultProvider: Provider;
+  onSave: (provider: Provider, apiKey: string, model: string) => Promise<void>;
+  onClear: (provider: Provider) => Promise<void>;
+}) {
+  const [apiKeyDrafts, setApiKeyDrafts] = useState<Record<Provider, string>>({
+    openai: "",
+    gemini: ""
+  });
+  const [modelDrafts, setModelDrafts] = useState<Record<Provider, string>>({
+    openai: providerConfigs.find((config) => config.provider === "openai")?.model ?? defaultProviderModels.openai,
+    gemini: providerConfigs.find((config) => config.provider === "gemini")?.model ?? defaultProviderModels.gemini
+  });
+
+  useEffect(() => {
+    setModelDrafts({
+      openai: providerConfigs.find((config) => config.provider === "openai")?.model ?? defaultProviderModels.openai,
+      gemini: providerConfigs.find((config) => config.provider === "gemini")?.model ?? defaultProviderModels.gemini
+    });
+  }, [providerConfigs]);
+
+  return (
+    <div className="morph-grid">
+      {providerConfigs.map((config) => (
+        <Notice
+          key={config.provider}
+          tone={config.configured ? "success" : config.provider === defaultProvider ? "warning" : "info"}
+          title={config.provider.toUpperCase()}
+        >
+          <KeyValueList
+            items={[
+              { label: "Configured", value: config.configured ? "Yes" : "No" },
+              { label: "Stored key", value: config.maskedKey ?? "none" },
+              { label: "Model", value: config.model ?? defaultProviderModels[config.provider] },
+              { label: "Last validated", value: config.lastValidatedAt ?? "not yet validated" },
+              { label: "Default provider", value: config.provider === defaultProvider ? "Yes" : "No" }
+            ]}
+          />
+          <div className="morph-grid">
+            <Field label={`${config.provider.toUpperCase()} API key`} hint="Stored locally in chrome.storage.local. Never synced.">
+              <input
+                className="mui-input"
+                placeholder={config.configured ? "Replace stored key" : "Paste API key"}
+                type="password"
+                value={apiKeyDrafts[config.provider]}
+                onChange={(event) => setApiKeyDrafts((current) => ({
+                  ...current,
+                  [config.provider]: event.target.value
+                }))}
+              />
+            </Field>
+            <Field label="Model">
+              <input
+                className="mui-input"
+                value={modelDrafts[config.provider]}
+                onChange={(event) => setModelDrafts((current) => ({
+                  ...current,
+                  [config.provider]: event.target.value
+                }))}
+              />
+            </Field>
+            <div className="morph-actions">
+              <Button
+                tone="primary"
+                onClick={() => onSave(config.provider, apiKeyDrafts[config.provider], modelDrafts[config.provider])}
+              >
+                Validate and save
+              </Button>
+              <Button tone="danger" onClick={() => onClear(config.provider)}>
+                Clear config
+              </Button>
+            </div>
+            <p>{config.lastError ?? "Use your own official provider API key. Morph UI validates the key and model before storing them. Consumer account reuse remains unsupported."}</p>
+          </div>
+        </Notice>
+      ))}
     </div>
   );
 }
@@ -239,25 +341,23 @@ export function App() {
   return (
     <AppShell
       title="Morph UI"
-      subtitle="Safe, reversible page adaptations with instant cache reapply."
-      actions={<Badge tone={bootstrap.session ? "success" : "warning"}>{bootstrap.session ? "Signed in" : "Sign-in required"}</Badge>}
+      subtitle="Extension-only, reversible page adaptations with local cache and direct provider planning."
+      actions={<Badge tone="accent">Extension only</Badge>}
     >
       {message ? (
-        <Notice tone={message.includes("failed") || message.includes("required") ? "warning" : "success"} title="Status">
+        <Notice tone={message.includes("failed") || message.includes("required") || message.includes("Configure") ? "warning" : "success"} title="Status">
           {message}
         </Notice>
       ) : null}
 
-      {!bootstrap.session ? (
-        <SectionCard title="Onboarding" description="Morph UI only sends enabled-site page summaries to the server. Consumer AI subscriptions are not silently reused.">
-          <Notice tone="info" title="What gets read">
-            DOM structure, headings, landmark summaries, and cached transform metadata. Screenshots are opt-in and blocked on sensitive sites.
-          </Notice>
-          <Button tone="primary" disabled={busy === "Sign in"} onClick={() => runAction("Sign in", () => sendRuntimeMessage({ type: "START_GOOGLE_SIGN_IN" }))}>
-            Sign in with Google
-          </Button>
-        </SectionCard>
-      ) : null}
+      <SectionCard title="Onboarding" description="Morph UI runs without a product backend. Add your own provider key locally and enable sites one origin at a time.">
+        <Notice tone="info" title="What gets read">
+          DOM structure, headings, landmark summaries, and local cached transform metadata. If privacy mode allows provider-assisted planning, the selected provider receives only the current page summary for enabled sites.
+        </Notice>
+        <Notice tone="warning" title="Provider honesty">
+          Morph UI does not reuse ChatGPT Plus or Gemini Advanced subscriptions. Extension-only mode requires your own official provider API key.
+        </Notice>
+      </SectionCard>
 
       <SectionCard
         title="Current page status"
@@ -294,6 +394,28 @@ export function App() {
         ) : (
           <EmptyState title="No supported tab selected" body="Open an HTTP(S) page to inspect and transform it." />
         )}
+      </SectionCard>
+
+      <SectionCard title="Provider configuration" description="Store provider API keys locally in the extension. Morph UI validates the selected model against the official provider endpoint before saving. These credentials are never synced and never sent to a Morph UI backend.">
+        <ProviderConfiguration
+          providerConfigs={bootstrap.providerConfigs}
+          defaultProvider={bootstrap.syncedSettings.defaultProvider}
+          onSave={(provider, apiKey, model) => {
+            if (!apiKey.trim()) {
+              return Promise.reject(new Error(`Paste an API key to configure ${provider.toUpperCase()}.`));
+            }
+            return runAction(`Save ${provider} config`, () => sendRuntimeMessage({
+              type: "SAVE_PROVIDER_CONFIG",
+              provider,
+              apiKey,
+              model
+            }));
+          }}
+          onClear={(provider) => runAction(`Clear ${provider} config`, () => sendRuntimeMessage({
+            type: "CLEAR_PROVIDER_CONFIG",
+            provider
+          }))}
+        />
       </SectionCard>
 
       <SectionCard title="Profile selection" description="Choose the global profile used for this page.">
@@ -351,7 +473,7 @@ export function App() {
         )}
       </SectionCard>
 
-      <SectionCard title="Cache status" description="Local IndexedDB is the fast path. Remote cache is used only when sync is enabled and you are signed in.">
+      <SectionCard title="Cache status" description="IndexedDB is the main fast path. There is no Morph UI backend cache in extension-only mode.">
         <KeyValueList
           items={[
             { label: "Last cache result", value: bootstrap.cacheStatus },
@@ -361,14 +483,14 @@ export function App() {
         />
       </SectionCard>
 
-      <SectionCard title="Provider status" description="Capability flags are shown as implemented, not inferred from consumer subscriptions.">
+      <SectionCard title="Provider status" description="Capability flags reflect the extension-only implementation path, not consumer subscription marketing.">
         <div className="morph-grid">
           {bootstrap.providerCapabilities.map((capability) => (
             <Notice key={capability.provider} tone={capability.status === "available" ? "success" : "warning"} title={capability.provider.toUpperCase()}>
               <KeyValueList
                 items={[
-                  { label: "Server-owned API", value: capability.canUseServerOwnedApiKey ? "Yes" : "No" },
-                  { label: "Official OAuth", value: capability.canUseOfficialOAuth ? "Supported architecture" : "Not used in v1" },
+                  { label: "User-supplied API key", value: capability.canUseUserSuppliedApiKey ? "Yes" : "No" },
+                  { label: "Official OAuth", value: capability.canUseOfficialOAuth ? "Supported" : "Not implemented" },
                   { label: "Consumer account reuse", value: capability.supportsConsumerAccountReuse ? "Supported" : "Disabled" }
                 ]}
               />
@@ -390,6 +512,7 @@ export function App() {
           <KeyValueList
             items={[
               { label: "Tab", value: bootstrap.tabId ?? "none" },
+              { label: "Configured providers", value: bootstrap.providerConfigs.filter((config) => config.configured).map((config) => config.provider).join(", ") || "none" },
               { label: "Last provider error", value: bootstrap.diagnostics.lastProviderError ?? "none" },
               { label: "Analysis latency", value: `${bootstrap.diagnostics.contentAnalysisMs}ms` },
               { label: "Plan latency", value: `${bootstrap.diagnostics.planLatencyMs}ms` }

@@ -1,41 +1,47 @@
+import {
+  compileTransformPlan,
+  createCachePolicy,
+  getProviderAdapter,
+  getDefaultProviderModel,
+  listProviderCapabilities
+} from "@morph-ui/ai";
 import { createCompiledFallback } from "@morph-ui/cache";
-import type {
-  CacheLookupResponse,
-  CompiledTransform,
-  PageSummary,
-  PreferenceProfile,
-  SessionExchangeResponse,
-  SiteSetting,
-  SyncedSettings,
-  TransformPlan,
-  TransformPlanResponse
+import {
+  structuredPreferencesSchema,
+  type CompiledTransform,
+  type PageSummary,
+  type PreferenceProfile,
+  type Provider,
+  type SiteSetting,
+  type TransformPlan
 } from "@morph-ui/shared";
 
 import { buildArtifactKey } from "../lib/cache-keys";
 import type { BootstrapPayload, RuntimeMessage } from "../lib/chrome-messaging";
 import { findBestArtifact, putTransformArtifact, removeArtifactsForOrigin, type TransformArtifactRecord } from "../lib/indexeddb";
 import { requestOriginPermission, registerContentScriptForOrigin, unregisterContentScriptForOrigin } from "../lib/permissions";
-import { shouldAllowRemotePlanning } from "../lib/privacy";
+import { shouldAllowProviderPlanning } from "../lib/privacy";
 import {
   ensureSeededProfiles,
   getDiagnostics,
   getLastCacheStatus,
   getProfiles,
+  getProviderConfig,
+  getProviderConfigSummaries,
   getSelectedProfileByOrigin,
-  getSession,
   getSiteSettings,
   getSyncedSettings,
+  removeProviderConfig,
   removeSiteSetting,
   saveProfile,
+  saveProviderConfig,
   saveSiteSetting,
   setDiagnostics,
   setLastCacheStatus,
+  setProviderConfigError,
   setSelectedProfileByOrigin,
-  setSession,
   updateSyncedSettings
 } from "../lib/storage";
-
-const SERVER_ORIGIN = import.meta.env.VITE_SERVER_ORIGIN ?? "http://localhost:8787";
 
 const pendingPreviewByTab = new Map<number, TransformArtifactRecord>();
 const latestPageSummaryByTab = new Map<number, PageSummary>();
@@ -62,72 +68,6 @@ async function getActiveTab() {
   return tabs[0] ?? null;
 }
 
-async function ensureFreshSession(session: SessionExchangeResponse | null) {
-  if (!session) {
-    return null;
-  }
-
-  if (new Date(session.expiresAt).getTime() > Date.now() + 30_000) {
-    return session;
-  }
-
-  const response = await fetch(`${SERVER_ORIGIN}/api/auth/session/refresh`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      refreshToken: session.refreshToken
-    })
-  });
-
-  if (!response.ok) {
-    await setSession(null);
-    return null;
-  }
-
-  const refreshed = await response.json() as SessionExchangeResponse;
-  await setSession(refreshed);
-  return refreshed;
-}
-
-async function authenticatedFetch(path: string, init: RequestInit = {}) {
-  const session = await ensureFreshSession(await getSession());
-  if (!session) {
-    throw new Error("Morph UI sign-in is required for server-assisted planning.");
-  }
-
-  const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${session.accessToken}`);
-  if (!headers.has("Content-Type") && init.body) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  const response = await fetch(`${SERVER_ORIGIN}${path}`, {
-    ...init,
-    headers
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(body || `Request failed for ${path}`);
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  return response.json();
-}
-
-async function fetchProviderCapabilities() {
-  const response = await fetch(`${SERVER_ORIGIN}/api/provider/capabilities`);
-  if (!response.ok) {
-    return [];
-  }
-  return response.json();
-}
-
 async function sendAnalyzeMessage(tabId: number) {
   const result = await chrome.tabs.sendMessage(tabId, {
     type: "MORPH_ANALYZE_PAGE"
@@ -135,12 +75,27 @@ async function sendAnalyzeMessage(tabId: number) {
   return result?.pageSummary ?? latestPageSummaryByTab.get(tabId) ?? null;
 }
 
-async function getCurrentProfile(origin: string | null): Promise<PreferenceProfile> {
+function mergeProfileWithSiteSetting(profile: PreferenceProfile, siteSetting: SiteSetting | null): PreferenceProfile {
+  if (!siteSetting) {
+    return profile;
+  }
+
+  return {
+    ...profile,
+    structuredPreferences: structuredPreferencesSchema.parse({
+      ...profile.structuredPreferences,
+      ...siteSetting.overridePreferences
+    })
+  };
+}
+
+async function getCurrentProfile(origin: string | null, siteSetting: SiteSetting | null): Promise<PreferenceProfile> {
   const profiles = await getProfiles();
-  const selected = origin ? await getSelectedProfileByOrigin(origin) : null;
-  return profiles.find((profile) => profile.id === selected)
+  const requestedProfileId = siteSetting?.profileId ?? (origin ? await getSelectedProfileByOrigin(origin) : null);
+  const selected = profiles.find((profile) => profile.id === requestedProfileId)
     ?? profiles.find((profile) => profile.isDefault)
     ?? profiles[0]!;
+  return mergeProfileWithSiteSetting(selected, siteSetting);
 }
 
 async function getCurrentSiteSetting(origin: string | null): Promise<SiteSetting | null> {
@@ -151,10 +106,12 @@ async function getCurrentSiteSetting(origin: string | null): Promise<SiteSetting
   return settings[origin] ?? null;
 }
 
-function createArtifactFromServer(input: {
+function createArtifactRecord(input: {
   profileId: string;
   pageSummary: PageSummary;
-  response: TransformPlanResponse;
+  plan: TransformPlan;
+  compiled: CompiledTransform;
+  ttlSeconds: number;
 }): TransformArtifactRecord {
   return {
     key: buildArtifactKey({
@@ -169,10 +126,10 @@ function createArtifactFromServer(input: {
     profileId: input.profileId,
     pathSignature: input.pageSummary.fingerprint.pathSignature,
     fingerprint: input.pageSummary.fingerprint,
-    plan: input.response.plan,
-    compiled: input.response.compiled,
-    confidence: input.response.plan.confidence,
-    ttlSeconds: input.response.cachePolicy.ttlSeconds,
+    plan: input.plan,
+    compiled: input.compiled,
+    confidence: input.plan.confidence,
+    ttlSeconds: input.ttlSeconds,
     validationStats: {
       lastValidatedAt: new Date().toISOString(),
       selectorMismatchRate: 0
@@ -197,28 +154,48 @@ async function applyArtifactToTab(tabId: number, artifact: TransformArtifactReco
   await setLastCacheStatus(tabId, input.reason);
 }
 
-async function maybeSaveRemoteCache(artifact: TransformArtifactRecord) {
-  try {
-    await authenticatedFetch("/api/cache/save", {
-      method: "POST",
-      body: JSON.stringify({
-        origin: artifact.origin,
-        normalizedUrl: artifact.normalizedUrl,
-        pathSignature: artifact.pathSignature,
-        profileId: artifact.profileId,
-        fingerprint: artifact.fingerprint,
-        confidence: artifact.confidence,
-        ttlSeconds: artifact.ttlSeconds,
-        plan: artifact.plan,
-        compiled: artifact.compiled
-      })
-    });
-  } catch {
-    // Remote sync is best-effort.
+async function createPlanArtifact(input: {
+  provider: Provider;
+  pageSummary: PageSummary;
+  profile: PreferenceProfile;
+  siteSetting: SiteSetting;
+  previousPlan?: TransformPlan | undefined;
+}): Promise<TransformArtifactRecord> {
+  const providerConfig = await getProviderConfig(input.provider);
+  if (!providerConfig) {
+    throw new Error(`Configure ${input.provider.toUpperCase()} with an API key before planning.`);
   }
+
+  const adapter = getProviderAdapter(input.provider);
+  const plan = await adapter.planTransform({
+    provider: input.provider,
+    profile: input.profile,
+    siteSetting: input.siteSetting,
+    pageSummary: input.pageSummary,
+    ...(input.previousPlan ? { previousPlan: input.previousPlan } : {})
+  }, {
+    apiKey: providerConfig.apiKey,
+    model: providerConfig.model
+  });
+
+  await setProviderConfigError(input.provider, null);
+  const cachePolicy = createCachePolicy(plan);
+  const compiled = compileTransformPlan(
+    plan,
+    plan.safetyFlags.requiresConservativeApply ? "conservative-css-only" : "full"
+  );
+
+  return createArtifactRecord({
+    profileId: input.profile.id,
+    pageSummary: input.pageSummary,
+    plan,
+    compiled,
+    ttlSeconds: cachePolicy.ttlSeconds
+  });
 }
 
 async function previewOrPlan(tabId: number, commit: boolean) {
+  const analysisStartedAt = Date.now();
   const pageSummary = await sendAnalyzeMessage(tabId);
   if (!pageSummary) {
     throw new Error("The current page could not be analyzed.");
@@ -227,8 +204,7 @@ async function previewOrPlan(tabId: number, commit: boolean) {
   latestPageSummaryByTab.set(tabId, pageSummary);
   const syncedSettings = await getSyncedSettings();
   const siteSetting = await getCurrentSiteSetting(pageSummary.origin);
-  const profile = await getCurrentProfile(pageSummary.origin);
-
+  const profile = await getCurrentProfile(pageSummary.origin, siteSetting);
   await setSelectedProfileByOrigin(pageSummary.origin, profile.id);
 
   const localCandidate = await findBestArtifact({
@@ -249,6 +225,14 @@ async function previewOrPlan(tabId: number, commit: boolean) {
     } else {
       pendingPreviewByTab.set(tabId, localCandidate.record);
     }
+
+    await setDiagnostics(tabId, {
+      lastCacheStatus: "hit",
+      lastProviderError: null,
+      selectorMismatchRate: localCandidate.record.validationStats.selectorMismatchRate,
+      contentAnalysisMs: Date.now() - analysisStartedAt,
+      planLatencyMs: 0
+    });
     return localCandidate.record;
   }
 
@@ -260,64 +244,33 @@ async function previewOrPlan(tabId: number, commit: boolean) {
     await applyArtifactToTab(tabId, staleArtifact, {
       preview: !commit,
       reason: "cache-stale-hit",
-      toast: "Applied conservatively while revalidating"
+      toast: "Applied conservatively while re-planning"
     });
   }
 
-  if (!shouldAllowRemotePlanning(siteSetting, syncedSettings, pageSummary.url)) {
+  if (!shouldAllowProviderPlanning(siteSetting, syncedSettings, pageSummary.url)) {
     if (localCandidate) {
+      await setDiagnostics(tabId, {
+        lastCacheStatus: "stale-hit",
+        lastProviderError: "Strict local mode blocks provider-assisted planning on this page.",
+        selectorMismatchRate: localCandidate.record.validationStats.selectorMismatchRate,
+        contentAnalysisMs: Date.now() - analysisStartedAt,
+        planLatencyMs: 0
+      });
       return localCandidate.record;
     }
-    throw new Error("Remote planning is disabled for this page under the current privacy mode.");
+    throw new Error("Provider-assisted planning is disabled for this page under the current privacy mode.");
   }
 
   const inflightKey = `${tabId}:${pageSummary.normalizedUrl}:${profile.id}`;
   if (!inFlightByTab.has(inflightKey)) {
+    const selectedProvider = syncedSettings.defaultProvider;
     inFlightByTab.set(inflightKey, (async () => {
-      const remoteLookup = await authenticatedFetch("/api/cache/lookup", {
-        method: "POST",
-        body: JSON.stringify({
-          origin: pageSummary.origin,
-          normalizedUrl: pageSummary.normalizedUrl,
-          pathSignature: pageSummary.fingerprint.pathSignature,
-          profileId: profile.id,
-          fingerprint: pageSummary.fingerprint
-        })
-      }) as CacheLookupResponse;
-
-      if (remoteLookup.status === "hit" || remoteLookup.status === "stale-hit") {
-        const artifact: TransformArtifactRecord = {
-          key: remoteLookup.cacheKey ?? buildArtifactKey({
-            origin: pageSummary.origin,
-            normalizedUrl: pageSummary.normalizedUrl,
-            profileId: profile.id,
-            fingerprint: pageSummary.fingerprint
-          }),
-          origin: pageSummary.origin,
-          normalizedUrl: pageSummary.normalizedUrl,
-          urlProfileKey: `${pageSummary.origin}|${pageSummary.normalizedUrl}|${profile.id}`,
-          profileId: profile.id,
-          pathSignature: pageSummary.fingerprint.pathSignature,
-          fingerprint: pageSummary.fingerprint,
-          plan: remoteLookup.plan as TransformPlan,
-          compiled: remoteLookup.compiled as CompiledTransform,
-          confidence: (remoteLookup.plan as TransformPlan).confidence,
-          ttlSeconds: 7 * 24 * 60 * 60,
-          validationStats: {
-            lastValidatedAt: new Date().toISOString(),
-            selectorMismatchRate: 0
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        await putTransformArtifact(artifact);
-        return artifact;
-      }
-
-      const response = await authenticatedFetch("/api/transform/plan", {
-        method: "POST",
-        body: JSON.stringify({
-          provider: syncedSettings.defaultProvider,
+      const startedAt = Date.now();
+      try {
+        const artifact = await createPlanArtifact({
+          provider: selectedProvider,
+          pageSummary,
           profile,
           siteSetting: siteSetting ?? {
             origin: pageSummary.origin,
@@ -328,18 +281,32 @@ async function previewOrPlan(tabId: number, commit: boolean) {
             profileId: profile.id,
             overridePreferences: {}
           },
-          pageSummary,
-          fingerprint: pageSummary.fingerprint
-        })
-      }) as TransformPlanResponse;
-
-      const artifact = createArtifactFromServer({
-        profileId: profile.id,
-        pageSummary,
-        response
-      });
-      await putTransformArtifact(artifact);
-      return artifact;
+          ...(localCandidate?.record.plan ? { previousPlan: localCandidate.record.plan } : {})
+        });
+        await putTransformArtifact(artifact);
+        await setDiagnostics(tabId, {
+          lastCacheStatus: "planned",
+          lastProviderError: null,
+          selectorMismatchRate: 0,
+          contentAnalysisMs: Date.now() - analysisStartedAt,
+          planLatencyMs: Date.now() - startedAt
+        });
+        return artifact;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown planning error.";
+        await setProviderConfigError(selectedProvider, message);
+        await setDiagnostics(tabId, {
+          lastCacheStatus: localCandidate ? "stale-hit" : "miss",
+          lastProviderError: message,
+          selectorMismatchRate: localCandidate?.record.validationStats.selectorMismatchRate ?? 0,
+          contentAnalysisMs: Date.now() - analysisStartedAt,
+          planLatencyMs: Date.now() - startedAt
+        });
+        if (localCandidate) {
+          return localCandidate.record;
+        }
+        throw error;
+      }
     })().finally(() => {
       inFlightByTab.delete(inflightKey);
     }));
@@ -353,7 +320,6 @@ async function previewOrPlan(tabId: number, commit: boolean) {
   });
 
   if (commit) {
-    await maybeSaveRemoteCache(artifact);
     pendingPreviewByTab.delete(tabId);
   } else {
     pendingPreviewByTab.set(tabId, artifact);
@@ -369,8 +335,8 @@ async function buildBootstrap(): Promise<BootstrapPayload> {
   const siteSetting = await getCurrentSiteSetting(origin);
   const profiles = await getProfiles();
   const syncedSettings = await getSyncedSettings();
-  const providerCapabilities = await fetchProviderCapabilities();
-  const session = await ensureFreshSession(await getSession());
+  const providerCapabilities = listProviderCapabilities();
+  const providerConfigs = await getProviderConfigSummaries(providerCapabilities);
   const selectedProfileId = origin ? await getSelectedProfileByOrigin(origin) : null;
 
   return {
@@ -379,11 +345,11 @@ async function buildBootstrap(): Promise<BootstrapPayload> {
     origin,
     pageSummary,
     cacheStatus: (await getLastCacheStatus(tab?.id ?? null)) as BootstrapPayload["cacheStatus"],
-    session,
     profiles,
     selectedProfileId,
     siteSetting,
     providerCapabilities,
+    providerConfigs,
     syncedSettings,
     diagnostics: await getDiagnostics(tab?.id ?? null),
     previewPlan: tab?.id ? pendingPreviewByTab.get(tab.id)?.plan ?? null : null
@@ -397,24 +363,16 @@ async function enableOrigin(origin: string) {
   }
 
   await registerContentScriptForOrigin(origin);
-  const siteSetting = await saveSiteSetting({
+  const syncedSettings = await getSyncedSettings();
+  await saveSiteSetting({
     origin,
     enabled: true,
     autoApply: false,
-    privacyMode: (await getSyncedSettings()).privacyMode,
-    allowScreenshots: false,
+    privacyMode: syncedSettings.privacyMode,
+    allowScreenshots: syncedSettings.allowScreenshotsOnMiss,
     profileId: null,
     overridePreferences: {}
   });
-
-  try {
-    await authenticatedFetch("/api/site-settings", {
-      method: "POST",
-      body: JSON.stringify(siteSetting)
-    });
-  } catch {
-    // Local-first. Remote sync is best-effort.
-  }
 
   const tab = await getActiveTab();
   if (tab?.id) {
@@ -436,72 +394,47 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
       case "GET_BOOTSTRAP":
         sendResponse(await buildBootstrap());
         break;
-      case "START_GOOGLE_SIGN_IN": {
-        const verifierBytes = crypto.getRandomValues(new Uint8Array(32));
-        const codeVerifier = btoa(String.fromCharCode(...verifierBytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-        const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
-        const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-        const state = crypto.randomUUID();
-        const extensionRedirectUri = chrome.identity.getRedirectURL("morph-ui");
-        const authUrl = new URL(`${SERVER_ORIGIN}/api/auth/google/start`);
-        authUrl.searchParams.set("extensionRedirectUri", extensionRedirectUri);
-        authUrl.searchParams.set("state", state);
-        authUrl.searchParams.set("codeChallenge", codeChallenge);
-        const redirect = await chrome.identity.launchWebAuthFlow({
-          url: authUrl.toString(),
-          interactive: true
-        });
-        if (!redirect) {
-          throw new Error("Sign-in was cancelled.");
-        }
-        const redirectUrl = new URL(redirect);
-        const exchangeCode = redirectUrl.searchParams.get("code");
-        if (!exchangeCode) {
-          throw new Error("Missing exchange code from auth redirect.");
-        }
-        const session = await fetch(`${SERVER_ORIGIN}/api/auth/session/exchange`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            exchangeCode,
-            codeVerifier
-          })
-        }).then((response) => {
-          if (!response.ok) {
-            throw new Error("Session exchange failed.");
-          }
-          return response.json();
-        }) as SessionExchangeResponse;
-        await setSession(session);
-        sendResponse(session);
-        break;
-      }
       case "SAVE_PROFILE": {
         const profiles = await saveProfile(message.profile);
-        try {
-          await authenticatedFetch("/api/profiles", {
-            method: "POST",
-            body: JSON.stringify(message.profile)
-          });
-        } catch {
-          // Local-first mode.
-        }
         sendResponse(profiles);
         break;
       }
       case "UPSERT_SITE_SETTING": {
         const siteSetting = await saveSiteSetting(message.siteSetting);
-        try {
-          await authenticatedFetch("/api/site-settings", {
-            method: "POST",
-            body: JSON.stringify(siteSetting)
-          });
-        } catch {
-          // Local-first mode.
-        }
         sendResponse(siteSetting);
         break;
       }
+      case "SAVE_PROVIDER_CONFIG": {
+        const apiKey = message.apiKey.trim();
+        const model = message.model.trim() || getDefaultProviderModel(message.provider);
+        const adapter = getProviderAdapter(message.provider);
+        let validation;
+        try {
+          validation = await adapter.validateConfig({
+            apiKey,
+            model
+          });
+        } catch (error) {
+          await setProviderConfigError(
+            message.provider,
+            error instanceof Error ? error.message : "Provider validation failed."
+          );
+          throw error;
+        }
+        const config = await saveProviderConfig({
+          provider: validation.provider,
+          apiKey,
+          model: validation.model,
+          lastValidatedAt: validation.validatedAt,
+          lastError: null
+        });
+        sendResponse(config);
+        break;
+      }
+      case "CLEAR_PROVIDER_CONFIG":
+        await removeProviderConfig(message.provider);
+        sendResponse({ ok: true });
+        break;
       case "UPDATE_SYNCED_SETTINGS":
         sendResponse(await updateSyncedSettings(message.settings));
         break;
@@ -532,7 +465,6 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
           reason: "apply",
           toast: "Transformation applied"
         });
-        await maybeSaveRemoteCache(artifact);
         pendingPreviewByTab.delete(tabId);
         sendResponse(artifact);
         break;
@@ -583,7 +515,7 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
           break;
         }
 
-        const profile = await getCurrentProfile(message.pageSummary.origin);
+        const profile = await getCurrentProfile(message.pageSummary.origin, siteSetting);
         await setSelectedProfileByOrigin(message.pageSummary.origin, profile.id);
         const localCandidate = await findBestArtifact({
           origin: message.pageSummary.origin,

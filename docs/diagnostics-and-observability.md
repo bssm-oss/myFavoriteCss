@@ -9,8 +9,6 @@ Morph UI has lightweight observability intended for local debugging and safe pro
 - side panel cache status
 - side panel provider status
 - diagnostics toggle output
-- server logs with redacted payloads
-- `/health`
 - Playwright screenshots and smoke notes
 
 ### Cache-oriented debugging
@@ -23,8 +21,8 @@ Morph UI has lightweight observability intended for local debugging and safe pro
 ### Planning-oriented debugging
 
 - confirm provider capability state
-- confirm provider key presence on the server
-- confirm strict privacy mode is not blocking remote planning
+- confirm a local provider key is configured
+- confirm strict privacy mode is not blocking provider-assisted planning
 
 ### Evidence sources in the repository
 
@@ -41,8 +39,6 @@ Morph UI는 로컬 디버깅과 안전한 운영을 위한 경량 observability�
 - 사이드패널 cache status
 - 사이드패널 provider status
 - diagnostics toggle 출력
-- redaction된 payload를 남기는 서버 로그
-- `/health`
 - Playwright 스크린샷과 smoke note
 
 ### Cache 중심 디버깅
@@ -55,8 +51,8 @@ Morph UI는 로컬 디버깅과 안전한 운영을 위한 경량 observability�
 ### Planning 중심 디버깅
 
 - provider capability 상태 확인
-- 서버에 provider key가 있는지 확인
-- strict privacy mode가 원격 planning을 막고 있지 않은지 확인
+- 로컬 provider key가 설정되어 있는지 확인
+- strict privacy mode가 provider-assisted planning을 막고 있지 않은지 확인
 
 ### 저장소 안의 증거 위치
 

@@ -22,7 +22,6 @@ This repository expects small, reviewable changes with matching docs and verific
 
 If runtime behavior changed, also run:
 
-- `pnpm test:integration`
 - `pnpm test:e2e`
 
 ### Documentation expectations
@@ -57,7 +56,6 @@ If runtime behavior changed, also run:
 
 런타임 동작이 바뀌었다면 추가로 실행합니다.
 
-- `pnpm test:integration`
 - `pnpm test:e2e`
 
 ### 문서 기대사항

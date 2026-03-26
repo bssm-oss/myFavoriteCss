@@ -2,78 +2,48 @@
 
 ## English
 
-Morph UI treats provider access as a server concern and exposes only capability-aware choices to the extension.
+Morph UI calls providers directly from the extension background.
 
-### Common adapter responsibilities
+### Supported model
 
-- accept a redacted planning payload
-- express capabilities honestly
-- request structured JSON output
-- normalize provider-specific output to `TransformPlan`
-- return typed failures for refusals and unsupported modes
+- user-supplied OpenAI API key
+- user-supplied Gemini API key
+- validation before save against the selected provider/model
 
-### OpenAI path
+### Not supported
 
-- official API only
-- server-owned API key mode supported
-- consumer account reuse unsupported in this architecture
-- structured output required
+- server-owned provider credentials
+- consumer account reuse
+- hidden browser-session reuse
 
-### Gemini path
+### Flow
 
-- official API only
-- server-owned API key mode supported
-- consumer account reuse unsupported in this architecture
-- structured output required
-
-### Screenshot usage rules
-
-- screenshots are optional input
-- screenshots are blocked by strict privacy mode
-- screenshots are blocked on sensitive sites by default
-- screenshots are only sent on controlled cache-miss or user-requested improvement paths
-
-### Why the extension never talks to providers directly
-
-- provider secrets must remain server-side
-- product session is not the same as provider billing identity
-- browser-extension review risk is lower when the extension does not embed provider credentials
+1. User stores a provider API key locally.
+2. The side panel validates the selected key/model against the official provider API before saving it.
+3. Background worker builds a structured prompt from the page summary and selected profile.
+4. The provider returns strict JSON.
+5. Morph UI validates and compiles the plan locally.
 
 ## 한국어
 
-Morph UI는 provider 접근을 서버 책임으로 두고, extension에는 capability를 반영한 선택지만 노출합니다.
+Morph UI는 extension background에서 provider를 직접 호출합니다.
 
-### 공통 adapter 책임
+### 지원 모델
 
-- redaction된 planning payload를 입력으로 받기
-- capability를 정직하게 표현하기
-- structured JSON 출력을 요청하기
-- provider별 출력을 `TransformPlan`으로 정규화하기
-- refusal, unsupported mode를 typed failure로 돌려주기
+- 사용자가 제공한 OpenAI API key
+- 사용자가 제공한 Gemini API key
+- 선택한 provider/model에 대한 저장 전 검증
 
-### OpenAI 경로
+### 지원하지 않는 것
 
-- 공식 API만 사용
-- 서버 소유 API key 모드 지원
-- 이 아키텍처에서 consumer account 재사용은 미지원
-- structured output 필수
+- 서버 소유 provider credential
+- 소비자 계정 재사용
+- 숨겨진 브라우저 세션 재사용
 
-### Gemini 경로
+### 흐름
 
-- 공식 API만 사용
-- 서버 소유 API key 모드 지원
-- 이 아키텍처에서 consumer account 재사용은 미지원
-- structured output 필수
-
-### Screenshot 사용 규칙
-
-- screenshot은 선택적 입력입니다.
-- strict privacy mode에서는 screenshot을 차단합니다.
-- 민감 사이트에서는 기본적으로 screenshot을 차단합니다.
-- 통제된 cache miss나 사용자가 명시적으로 개선을 요청한 경로에서만 전송합니다.
-
-### extension이 provider와 직접 통신하지 않는 이유
-
-- provider secret은 반드시 서버에만 있어야 합니다.
-- 제품 세션과 provider 과금 정체성은 동일하지 않습니다.
-- extension이 provider credential을 내장하지 않을수록 스토어 심사 위험이 낮습니다.
+1. 사용자가 provider API key를 로컬에 입력합니다.
+2. side panel이 저장 전에 선택한 key/model을 공식 provider API로 검증합니다.
+3. background worker가 페이지 요약과 선택된 프로필로 구조화된 prompt를 만듭니다.
+4. provider가 strict JSON을 반환합니다.
+5. Morph UI가 로컬에서 plan을 검증하고 컴파일합니다.

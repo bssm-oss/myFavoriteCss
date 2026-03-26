@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { shouldAllowRemotePlanning } from "../lib/privacy";
+import { shouldAllowProviderPlanning } from "../lib/privacy";
 
 describe("privacy policy helpers", () => {
-  it("blocks remote planning in strict-local mode", () => {
-    expect(shouldAllowRemotePlanning({
+  it("blocks provider planning in strict-local mode", () => {
+    expect(shouldAllowProviderPlanning({
       origin: "https://example.com",
       enabled: true,
       autoApply: false,
@@ -22,8 +22,8 @@ describe("privacy policy helpers", () => {
     }, "https://example.com/docs")).toBe(false);
   });
 
-  it("blocks sensitive URLs even when sync is allowed", () => {
-    expect(shouldAllowRemotePlanning(null, {
+  it("blocks sensitive URLs even when provider assistance is allowed", () => {
+    expect(shouldAllowProviderPlanning(null, {
       defaultProvider: "openai",
       privacyMode: "sync-enabled",
       diagnosticsEnabled: false,

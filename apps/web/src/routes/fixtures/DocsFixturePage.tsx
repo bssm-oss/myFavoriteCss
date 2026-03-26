@@ -17,7 +17,7 @@ export function DocsFixturePage() {
         </section>
         <section>
           <h2>Configure</h2>
-          <p>Set up the extension, server, and privacy defaults.</p>
+          <p>Set up the extension, add a provider API key, and choose your privacy defaults.</p>
         </section>
       </main>
     </div>

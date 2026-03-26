@@ -8,5 +8,3 @@ coverage
 playwright-report
 test-results
 .playwright-cli
-apps/server/drizzle
-apps/server/.wrangler

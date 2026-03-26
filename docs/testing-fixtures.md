@@ -21,7 +21,6 @@ These routes are used for:
 ### Test layers
 
 - unit tests in packages and extension helpers
-- backend integration test with Testcontainers
 - extension E2E with Playwright
 - root-level manual smoke notes under `tests/`
 
@@ -51,7 +50,6 @@ These routes are used for:
 ### 테스트 계층
 
 - packages와 extension helper의 unit test
-- Testcontainers 기반 backend integration test
 - Playwright 기반 extension E2E
 - `tests/` 아래 루트 수동 smoke 기록
 

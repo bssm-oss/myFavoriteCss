@@ -12,6 +12,7 @@
     "lint": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@morph-ui/ai": "workspace:*",
     "@morph-ui/cache": "workspace:*",
     "@morph-ui/config": "workspace:*",
     "@morph-ui/shared": "workspace:*",

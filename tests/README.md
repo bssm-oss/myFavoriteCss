@@ -14,13 +14,11 @@ What belongs here:
 What does not belong here:
 
 - package unit tests
-- server Vitest source
 - extension Vitest or Playwright source files
 
 Those stay near the code in:
 
 - `apps/extension/tests`
-- `apps/server/src/tests`
 - `packages/*/src/*.test.ts`
 
 Related contributor workflow:
@@ -41,13 +39,11 @@ Related contributor workflow:
 여기에 넣지 않는 것:
 
 - package unit test
-- server Vitest 소스
 - extension Vitest/Playwright 소스 파일
 
 그런 테스트들은 다음 위치에 그대로 둡니다.
 
 - `apps/extension/tests`
-- `apps/server/src/tests`
 - `packages/*/src/*.test.ts`
 
 관련 기여 가이드:

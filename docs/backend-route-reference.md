@@ -2,76 +2,18 @@
 
 ## English
 
-This document is a practical route map that complements the schema-first API contract.
+Removed in extension-only mode. Morph UI no longer exposes backend routes.
 
-### Auth routes
+See:
 
-- `POST /api/auth/session/exchange`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
-
-### Provider and planning routes
-
-- `GET /api/provider/capabilities`
-- `POST /api/transform/plan`
-
-### Cache routes
-
-- `POST /api/cache/lookup`
-- `POST /api/cache/save`
-
-### User configuration routes
-
-- `GET /api/profiles`
-- `POST /api/profiles`
-- `GET /api/site-settings`
-- `POST /api/site-settings`
-
-### Feedback and health
-
-- `POST /api/feedback`
-- `GET /health`
-
-### Notes
-
-- all request bodies are validated with Zod
-- authenticated routes depend on Morph UI product session, not provider auth
-- redacted payload logging is preferred over raw body logging
+- [extension-messaging-reference.md](./extension-messaging-reference.md)
+- [api-contracts.md](./api-contracts.md)
 
 ## 한국어
 
-이 문서는 schema 중심 API 계약을 보완하는 실용적인 route 지도입니다.
+extension-only 모드에서 제거되었습니다. Morph UI는 더 이상 백엔드 route를 노출하지 않습니다.
 
-### Auth route
+대신 다음 문서를 참고하세요.
 
-- `POST /api/auth/session/exchange`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
-
-### Provider 및 planning route
-
-- `GET /api/provider/capabilities`
-- `POST /api/transform/plan`
-
-### Cache route
-
-- `POST /api/cache/lookup`
-- `POST /api/cache/save`
-
-### 사용자 설정 route
-
-- `GET /api/profiles`
-- `POST /api/profiles`
-- `GET /api/site-settings`
-- `POST /api/site-settings`
-
-### Feedback 및 health
-
-- `POST /api/feedback`
-- `GET /health`
-
-### 참고
-
-- 모든 요청 body는 Zod로 검증됩니다.
-- 인증이 필요한 route는 provider auth가 아니라 Morph UI 제품 세션을 사용합니다.
-- 원본 body 로그보다 redaction된 payload 로그를 우선합니다.
+- [extension-messaging-reference.md](./extension-messaging-reference.md)
+- [api-contracts.md](./api-contracts.md)

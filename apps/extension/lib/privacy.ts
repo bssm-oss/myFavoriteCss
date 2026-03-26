@@ -5,7 +5,7 @@ export function isStrictLocal(siteSetting: SiteSetting | null, syncedSettings: S
   return (siteSetting?.privacyMode ?? syncedSettings.privacyMode) === "strict-local";
 }
 
-export function shouldAllowRemotePlanning(siteSetting: SiteSetting | null, syncedSettings: SyncedSettings, url: string) {
+export function shouldAllowProviderPlanning(siteSetting: SiteSetting | null, syncedSettings: SyncedSettings, url: string) {
   return !isStrictLocal(siteSetting, syncedSettings) && !isSensitiveUrl(url);
 }
 

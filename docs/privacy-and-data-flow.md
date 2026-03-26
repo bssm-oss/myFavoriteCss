@@ -2,78 +2,60 @@
 
 ## English
 
-Morph UI makes privacy behavior explicit.
+Morph UI is extension-only, so the main data boundary is between the extension and the selected AI provider.
 
-### Privacy modes
+### Stored locally
 
-- `strict-local`
-  no remote planning, local cached transforms only
-- `local-first`
-  default mode, local analysis and cache first, remote planning allowed when policy permits
-- `sync-enabled`
-  same planning behavior as local-first plus remote artifact sync
-
-### What stays local
-
+- profiles and synced settings
 - site enablement flags
-- selected profiles
-- synced settings
-- diagnostics
-- local transform cache
+- provider configuration summaries
+- provider API keys in `chrome.storage.local`
+- IndexedDB transform artifacts, fingerprints, compiled CSS, and validation stats
 
-### What may go to the server
+### Sent to providers
 
-- redacted page summary
-- fingerprint
-- selected profile
-- selected site setting
-- accepted transform artifacts
-- feedback events
+- structured page summary
+- selected profile and site policy
+- optional screenshot only when allowed
 
-### What may go to AI providers
+### Never sent
 
-- redacted structural summaries
-- optional screenshot when policy allows it
+- cookies
+- password values
+- hidden auth tokens
+- payment card values
+- private secrets extracted from obvious token-like fields
 
-### Sensitive-site defaults
+### Strict-local mode
 
-Remote planning is blocked by default for likely login, payment, banking, mail, healthcare, government, password, and internal enterprise contexts.
+In `strict-local`, Morph UI uses only existing local cache and does not call a provider.
 
 ## 한국어
 
-Morph UI는 privacy 동작을 명시적으로 드러내도록 설계되어 있습니다.
+Morph UI는 extension-only 구조이므로, 주요 데이터 경계는 extension과 선택된 AI provider 사이에 있습니다.
 
-### Privacy mode
+### 로컬 저장
 
-- `strict-local`
-  원격 planning 금지, 로컬 캐시 transform만 허용
-- `local-first`
-  기본 모드, 로컬 분석과 캐시를 우선하고 정책이 허용할 때만 원격 planning 허용
-- `sync-enabled`
-  local-first와 같은 planning 정책에 원격 artifact sync가 추가됨
-
-### 로컬에만 남는 것
-
+- 프로필과 synced 설정
 - 사이트 enable 플래그
-- 선택된 프로필
-- 동기화 설정
-- 진단 정보
-- 로컬 transform 캐시
+- provider 설정 요약
+- `chrome.storage.local`에 저장되는 provider API key
+- IndexedDB의 transform artifact, fingerprint, compiled CSS, validation stat
 
-### 서버로 갈 수 있는 것
+### Provider로 전송되는 것
 
-- redacted page summary
-- fingerprint
-- 선택한 프로필
-- 선택한 사이트 설정
-- 승인된 transform artifact
-- feedback event
+- 구조화된 페이지 요약
+- 선택된 프로필과 사이트 정책
+- 허용된 경우에만 선택적 screenshot
 
-### AI provider로 갈 수 있는 것
+### 전송하지 않는 것
 
-- redacted structural summary
-- 정책이 허용하는 경우의 선택적 screenshot
+- cookie
+- 비밀번호 값
+- 숨겨진 auth token
+- 결제 카드 값
+- 명백한 token-like field에서 추출된 private secret
 
-### 민감 사이트 기본 정책
+### Strict-local mode
 
-로그인, 결제, 은행, 메일, 헬스케어, 정부, 비밀번호, 사내 시스템으로 보이는 맥락에서는 원격 planning이 기본적으로 차단됩니다.
+`strict-local`에서는 기존 로컬 캐시만 사용하고 provider를 호출하지 않습니다.

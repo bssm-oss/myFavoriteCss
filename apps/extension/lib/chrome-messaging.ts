@@ -4,8 +4,9 @@ import type {
   Diagnostics,
   PageSummary,
   PreferenceProfile,
+  Provider,
   ProviderCapabilities,
-  SessionExchangeResponse,
+  ProviderConfigSummary,
   SiteSetting,
   SyncedSettings,
   TransformPlan
@@ -17,11 +18,11 @@ export interface BootstrapPayload {
   origin: string | null;
   pageSummary: PageSummary | null;
   cacheStatus: CacheLookupResponse["status"] | "none";
-  session: SessionExchangeResponse | null;
   profiles: PreferenceProfile[];
   selectedProfileId: string | null;
   siteSetting: SiteSetting | null;
   providerCapabilities: ProviderCapabilities[];
+  providerConfigs: ProviderConfigSummary[];
   syncedSettings: SyncedSettings;
   diagnostics: Diagnostics;
   previewPlan: TransformPlan | null;
@@ -29,9 +30,10 @@ export interface BootstrapPayload {
 
 export type RuntimeMessage =
   | { type: "GET_BOOTSTRAP" }
-  | { type: "START_GOOGLE_SIGN_IN" }
   | { type: "SAVE_PROFILE"; profile: PreferenceProfile }
   | { type: "UPSERT_SITE_SETTING"; siteSetting: SiteSetting }
+  | { type: "SAVE_PROVIDER_CONFIG"; provider: Provider; apiKey: string; model: string }
+  | { type: "CLEAR_PROVIDER_CONFIG"; provider: Provider }
   | { type: "UPDATE_SYNCED_SETTINGS"; settings: Partial<SyncedSettings> }
   | { type: "ENABLE_SITE"; origin: string }
   | { type: "DISABLE_SITE"; origin: string }

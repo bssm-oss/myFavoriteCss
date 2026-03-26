@@ -2,16 +2,13 @@
 
 ## English
 
-Morph UI uses typed message contracts between UI surfaces, the background worker, and content scripts.
-
-### Runtime messages
-
-Examples:
+Main runtime messages now include:
 
 - `GET_BOOTSTRAP`
-- `START_GOOGLE_SIGN_IN`
 - `SAVE_PROFILE`
 - `UPSERT_SITE_SETTING`
+- `SAVE_PROVIDER_CONFIG`
+- `CLEAR_PROVIDER_CONFIG`
 - `UPDATE_SYNCED_SETTINGS`
 - `ENABLE_SITE`
 - `DISABLE_SITE`
@@ -25,33 +22,16 @@ Examples:
 - `OPEN_SIDE_PANEL`
 - `QUICK_APPLY`
 - `QUICK_UNDO`
-
-### Content messages
-
-Examples:
-
-- `MORPH_ANALYZE_PAGE`
-- `MORPH_APPLY_COMPILED`
-- `MORPH_UNDO_TRANSFORM`
-- `MORPH_RESET_SITE`
-- `MORPH_GET_RUNTIME_STATE`
-
-Canonical definitions live in:
-
-- `apps/extension/lib/chrome-messaging.ts`
 
 ## 한국어
 
-Morph UI는 UI surface, background worker, content script 사이에서 타입이 있는 메시지 계약을 사용합니다.
-
-### Runtime 메시지
-
-예시:
+현재 주요 runtime 메시지는 다음과 같습니다.
 
 - `GET_BOOTSTRAP`
-- `START_GOOGLE_SIGN_IN`
 - `SAVE_PROFILE`
 - `UPSERT_SITE_SETTING`
+- `SAVE_PROVIDER_CONFIG`
+- `CLEAR_PROVIDER_CONFIG`
 - `UPDATE_SYNCED_SETTINGS`
 - `ENABLE_SITE`
 - `DISABLE_SITE`
@@ -65,17 +45,3 @@ Morph UI는 UI surface, background worker, content script 사이에서 타입이
 - `OPEN_SIDE_PANEL`
 - `QUICK_APPLY`
 - `QUICK_UNDO`
-
-### Content 메시지
-
-예시:
-
-- `MORPH_ANALYZE_PAGE`
-- `MORPH_APPLY_COMPILED`
-- `MORPH_UNDO_TRANSFORM`
-- `MORPH_RESET_SITE`
-- `MORPH_GET_RUNTIME_STATE`
-
-정식 정의 위치:
-
-- `apps/extension/lib/chrome-messaging.ts`
