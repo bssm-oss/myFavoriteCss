@@ -1,174 +1,167 @@
 # Local development
 
-This document is the practical setup guide for engineers working on Morph UI.
+## English
 
-## Prerequisites
+### Fastest path
 
-- Node.js 20 or newer
-- pnpm 9 or newer
+```bash
+pnpm local:setup
+pnpm local:dev
+```
+
+Shortcuts:
+
+- `pnpm local:setup`
+  install deps, create `.env` if missing, start Postgres, migrate, seed, build extension
+- `pnpm local:dev`
+  load `.env` and run server, web app, and extension builder together
+- `pnpm local:verify`
+  run typecheck, tests, integration test, E2E, and build
+
+Underlying helper:
+
+- `scripts/morph-local.sh`
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9+
 - Docker
-- Chrome 120 or newer
+- Chrome 120+
 
-## Install
+### Manual step-by-step
 
 ```bash
 pnpm install
-```
-
-## Start local Postgres
-
-```bash
 docker compose up -d postgres
-```
-
-The default container exposed by this repo listens on port `54329`.
-
-## Create `.env`
-
-```bash
 cp .env.example .env
-```
-
-Minimum recommended local values:
-
-- `SESSION_TOKEN_SECRET`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_OAUTH_REDIRECT_URI`
-- `OPENAI_API_KEY` or `GEMINI_API_KEY`
-
-## Run migrations and seed data
-
-```bash
 pnpm db:migrate
 pnpm db:seed
-```
-
-## Start the apps
-
-Open three terminals:
-
-### Terminal 1
-
-```bash
 pnpm dev:server
-```
-
-### Terminal 2
-
-```bash
 pnpm dev:web
-```
-
-### Terminal 3
-
-```bash
 pnpm dev:extension
 ```
 
-## Local URLs
+Local URLs:
 
-- Fastify server: `http://localhost:8787`
-- Web app and fixtures: `http://localhost:5173`
-- Extension bundle output: `apps/extension/dist`
+- server: `http://localhost:8787`
+- web app: `http://localhost:5173`
+- fixtures: `http://localhost:5173/fixtures/article`
+- extension bundle: `apps/extension/dist`
 
-## Load the unpacked extension
+### Loading the extension
 
 1. Open `chrome://extensions`
 2. Enable Developer mode
-3. Click `Load unpacked`
-4. Choose `apps/extension/dist`
-5. Open the side panel from the extension action
+3. Choose `Load unpacked`
+4. Select `apps/extension/dist`
+5. Open the side panel
 
-## Suggested smoke test
+### Recommended smoke flow
 
 1. Visit `http://localhost:5173/fixtures/article`
 2. Open the side panel
 3. Enable the site
 4. Choose `Reader Focus`
-5. Preview the transform
-6. Apply it
-7. Reload the page
-8. Confirm the page can reuse local cache
+5. Preview
+6. Apply
+7. Undo
+8. Reload and check cache behavior
 
-## Useful commands
-
-### Typecheck
-
-```bash
-pnpm typecheck
-```
-
-### Unit and package tests
+### Verification commands
 
 ```bash
 pnpm test
-```
-
-### Backend integration test
-
-```bash
 pnpm test:integration
-```
-
-### Extension E2E harness
-
-```bash
 pnpm test:e2e
-```
-
-### Full build
-
-```bash
 pnpm build
+pnpm local:verify
 ```
 
-## Manual smoke assets
+Related evidence:
 
-This repository now keeps root-level smoke records separate from colocated automated tests.
-
-Read:
-
-- `tests/README.md`
-- `tests/smoke/extension-happy-path.checklist.md`
 - `tests/manual/local-smoke-2026-03-26.md`
-
-Captured browser artifacts referenced by that smoke run live in:
-
 - `output/playwright/2026-03-26/`
 
-## Common local debugging targets
+## 한국어
 
-### Extension auth flow
+### 가장 빠른 실행 경로
 
-Check:
+```bash
+pnpm local:setup
+pnpm local:dev
+```
 
-- Google OAuth redirect URI matches local backend callback
-- extension can reach the local server origin
-- session refresh endpoint is reachable
+단축 명령:
 
-### Provider planning failures
+- `pnpm local:setup`
+  의존성 설치, `.env` 자동 생성, Postgres 시작, 마이그레이션/시드 실행, 확장 빌드
+- `pnpm local:dev`
+  `.env`를 읽고 서버, 웹앱, 확장 빌더를 함께 실행
+- `pnpm local:verify`
+  타입체크, 테스트, 통합 테스트, E2E, 빌드까지 한 번에 실행
 
-Check:
+실제 스크립트:
 
-- provider API key exists in `.env`
-- selected provider matches the configured key
-- privacy mode is not `strict-local`
-- current site is enabled
+- `scripts/morph-local.sh`
 
-### Cache debugging
+### 준비물
 
-Check:
+- Node.js 20+
+- pnpm 9+
+- Docker
+- Chrome 120+
 
-- site setting is enabled for the origin
-- selected profile matches the stored artifact profile
-- normalized URL is stable between visits
-- similarity score is high enough for auto-apply
+### 수동 실행 절차
 
-### Extension load issues
+```bash
+pnpm install
+docker compose up -d postgres
+cp .env.example .env
+pnpm db:migrate
+pnpm db:seed
+pnpm dev:server
+pnpm dev:web
+pnpm dev:extension
+```
 
-Check:
+로컬 URL:
 
-- `pnpm dev:extension` or `pnpm --filter @morph-ui/extension build` has produced `apps/extension/dist`
-- Chrome extension page is loading the latest bundle
-- the current site has been granted host permission
+- 서버: `http://localhost:8787`
+- 웹앱: `http://localhost:5173`
+- fixture: `http://localhost:5173/fixtures/article`
+- 확장 번들: `apps/extension/dist`
+
+### 확장 로드 방법
+
+1. `chrome://extensions` 열기
+2. Developer mode 활성화
+3. `Load unpacked` 선택
+4. `apps/extension/dist` 선택
+5. 사이드패널 열기
+
+### 추천 스모크 흐름
+
+1. `http://localhost:5173/fixtures/article` 접속
+2. 사이드패널 열기
+3. 사이트 enable
+4. `Reader Focus` 선택
+5. Preview
+6. Apply
+7. Undo
+8. 새로고침 후 캐시 동작 확인
+
+### 검증 명령
+
+```bash
+pnpm test
+pnpm test:integration
+pnpm test:e2e
+pnpm build
+pnpm local:verify
+```
+
+관련 증거:
+
+- `tests/manual/local-smoke-2026-03-26.md`
+- `output/playwright/2026-03-26/`
