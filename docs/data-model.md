@@ -1,238 +1,91 @@
 # Data model
 
-Morph UI uses Postgres through Drizzle. The schema is designed around per-user state, explicit cache artifacts, and provider capability transparency.
+## English
 
-Canonical schema:
+Morph UI uses Postgres through Drizzle.
 
-- `apps/server/src/db/schema.ts`
-- `apps/server/src/db/migrations/0001_init.sql`
+### Main tables
 
-## Tables
+- `users`
+  Morph UI product users
+- `auth_accounts`
+  linked external auth identities
+- `auth_flows`
+  temporary Google OAuth continuation state
+- `sessions`
+  hashed Morph UI session tokens
+- `profiles`
+  user preference profiles
+- `site_settings`
+  per-origin behavior
+- `path_overrides`
+  optional path-level overrides
+- `page_cache`
+  per-user remote transform artifacts
+- `transform_runs`
+  provider-backed planning run records
+- `feedback_events`
+  user feedback on transforms
+- `provider_capabilities`
+  declared provider capability posture
 
-### `users`
+### Important constraints
 
-Stores Morph UI product users.
+- `users.email` unique
+- `(provider, provider_user_id)` unique on `auth_accounts`
+- `(user_id, origin)` unique on `site_settings`
+- `(user_id, origin, path_pattern)` unique on `path_overrides`
+- `(user_id, origin, normalized_url, profile_id, fingerprint_version, path_signature)` unique on `page_cache`
 
-Key columns:
+### Seed data
 
-- `id`
-- `email`
-- `name`
-- `avatar_url`
-- timestamps
+The seed creates:
 
-### `auth_accounts`
-
-Stores external identity provider linkage for product auth.
-
-Key columns:
-
-- `user_id`
-- `provider`
-- `provider_user_id`
-- `access_metadata`
-
-Constraint:
-
-- unique on `(provider, provider_user_id)`
-
-### `auth_flows`
-
-Stores in-flight Google OAuth continuation state for extension auth.
-
-Key columns:
-
-- `state`
-- `extension_redirect_uri`
-- `extension_state`
-- `code_challenge`
-- `exchange_code_hash`
-- `expires_at`
-- `used_at`
-
-### `sessions`
-
-Stores hashed Morph UI product session tokens.
-
-Key columns:
-
-- `user_id`
-- `access_token_hash`
-- `refresh_token_hash`
-- `access_expires_at`
-- `refresh_expires_at`
-- `user_agent`
-
-### `profiles`
-
-Stores user preference profiles.
-
-Key columns:
-
-- `user_id`
-- `name`
-- `is_default`
-- `natural_language_instruction`
-- `structured_preferences_json`
-- `learned_adjustments_json`
-
-### `site_settings`
-
-Stores per-origin behavior.
-
-Key columns:
-
-- `user_id`
-- `origin`
-- `enabled`
-- `auto_apply`
-- `privacy_mode`
-- `allow_screenshots`
-- `profile_id`
-- `override_preferences_json`
-
-Constraint:
-
-- unique on `(user_id, origin)`
-
-### `path_overrides`
-
-Stores optional path-level overrides.
-
-Key columns:
-
-- `user_id`
-- `origin`
-- `path_pattern`
-- `enabled`
-- `auto_apply`
-- `profile_id`
-- `override_preferences_json`
-
-Constraint:
-
-- unique on `(user_id, origin, path_pattern)`
-
-### `page_cache`
-
-Stores canonical remote transform artifacts for the user.
-
-Key columns:
-
-- `user_id`
-- `origin`
-- `normalized_url`
-- `path_signature`
-- `profile_id`
-- `fingerprint_version`
-- `fingerprint_hash`
-- `fingerprint_features_json`
-- `transform_plan_json`
-- `compiled_css_text`
-- `compiled_ops_json`
-- `confidence`
-- `ttl_seconds`
-- `last_validated_at`
-
-Constraint:
-
-- unique on `(user_id, origin, normalized_url, profile_id, fingerprint_version, path_signature)`
-
-### `transform_runs`
-
-Stores a record of provider-backed planning attempts.
-
-Key columns:
-
-- `user_id`
-- `provider`
-- `origin`
-- `normalized_url`
-- `profile_id`
-- `cache_status`
-- `page_type`
-- `request_payload_redacted_json`
-- `model_response_json`
-- `success`
-- `latency_ms`
-
-Note:
-
-- `profile_id` is nullable at write time if the provided profile is not persisted yet. Planning should not fail just because observability metadata cannot attach a foreign key.
-
-### `feedback_events`
-
-Stores user feedback on applied or previewed transforms.
-
-Key columns:
-
-- `user_id`
-- `page_cache_id`
-- `event_type`
-- `event_payload_json`
-
-### `provider_capabilities`
-
-Stores the declared platform capability posture for each provider.
-
-Key columns:
-
-- `provider`
-- `can_use_official_oauth`
-- `can_use_server_owned_api`
-- `supports_consumer_account_reuse`
-- `supports_vision`
-- `supports_structured_output`
-- `limitation_reason`
-
-## Seed data
-
-Current seed behavior creates:
-
+- a demo user
 - provider capability rows
-- sample preference profiles
-- a demo development user
+- seeded profiles including Reader Focus, Dense Catalog, Calm Dashboard, Docs Navigator, and Accessible Contrast
 
-Seeded profile set:
+## 한국어
 
-- Reader Focus
-- Dense Catalog
-- Calm Dashboard
-- Docs Navigator
-- Accessible Contrast
+Morph UI는 Drizzle을 통해 Postgres를 사용합니다.
 
-## How database state maps to product behavior
+### 주요 테이블
 
-### Profile selection
+- `users`
+  Morph UI 제품 사용자
+- `auth_accounts`
+  외부 인증 연동 정보
+- `auth_flows`
+  Google OAuth 진행 상태
+- `sessions`
+  해시된 Morph UI 세션 토큰
+- `profiles`
+  사용자 선호 프로필
+- `site_settings`
+  origin 단위 설정
+- `path_overrides`
+  선택적 path 단위 오버라이드
+- `page_cache`
+  사용자별 원격 transform 아티팩트
+- `transform_runs`
+  provider planning 실행 기록
+- `feedback_events`
+  변환에 대한 사용자 피드백
+- `provider_capabilities`
+  provider capability 선언값
 
-- persisted profiles come from `profiles`
-- selected profile by origin is stored locally in the extension for fast runtime decisions
+### 중요한 제약조건
 
-### Site behavior
+- `users.email` 유니크
+- `auth_accounts`의 `(provider, provider_user_id)` 유니크
+- `site_settings`의 `(user_id, origin)` 유니크
+- `path_overrides`의 `(user_id, origin, path_pattern)` 유니크
+- `page_cache`의 `(user_id, origin, normalized_url, profile_id, fingerprint_version, path_signature)` 유니크
 
-- whether a site is enabled comes from `site_settings`
-- whether a site auto-applies comes from `site_settings`
-- privacy mode and screenshot permission also come from `site_settings`
+### 시드 데이터
 
-### Remote cache
+시드는 다음을 생성합니다.
 
-- accepted artifacts are written to `page_cache`
-- lookups search by user, origin, normalized URL, and profile context
-
-### Learning loop
-
-- user feedback becomes `feedback_events`
-- selected feedback types update `profiles.learned_adjustments_json`
-
-## Migration model
-
-The repo currently includes a single initial SQL migration:
-
-- `apps/server/src/db/migrations/0001_init.sql`
-
-For local work:
-
-```bash
-pnpm db:migrate
-pnpm db:seed
-```
+- 데모 사용자
+- provider capability 레코드
+- Reader Focus, Dense Catalog, Calm Dashboard, Docs Navigator, Accessible Contrast 프로필

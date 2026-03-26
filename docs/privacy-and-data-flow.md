@@ -1,156 +1,79 @@
 # Privacy and data flow
 
-Morph UI is designed so privacy rules are visible in product behavior, not buried in backend assumptions.
+## English
 
-## Privacy modes
+Morph UI makes privacy behavior explicit.
 
-### `strict-local`
+### Privacy modes
 
-- no remote transform planning
-- no server call for AI planning
-- only previously cached local artifacts may be applied
-- useful for highly sensitive browsing contexts
+- `strict-local`
+  no remote planning, local cached transforms only
+- `local-first`
+  default mode, local analysis and cache first, remote planning allowed when policy permits
+- `sync-enabled`
+  same planning behavior as local-first plus remote artifact sync
 
-### `local-first`
-
-- default mode
-- local analysis and local cache first
-- remote planning allowed only when the site is enabled and not blocked by sensitivity rules
-
-### `sync-enabled`
-
-- same remote planning posture as `local-first`
-- accepted artifacts may also be synchronized to the user's remote cache
-
-## What data stays local
-
-Stored in the extension:
+### What stays local
 
 - site enablement flags
-- selected profile IDs
+- selected profiles
 - synced settings
 - diagnostics
-- preview state
-- local transform artifact cache
-- current tab bootstrap state
+- local transform cache
 
-Stored in the page context transiently:
-
-- analyzed `PageSummary`
-- computed fingerprint
-- runtime mutation journal for undo
-
-## What goes to the Morph UI server
-
-When server-assisted planning or remote cache is used, the extension may send:
+### What may go to the server
 
 - redacted page summary
-- page fingerprint
+- fingerprint
 - selected profile
 - selected site setting
-- accepted compiled artifact for cache save
+- accepted transform artifacts
 - feedback events
 
-The server does not need browser cookies or the raw DOM HTML to do its job in the current design.
+### What may go to AI providers
 
-## What may go to AI providers
+- redacted structural summaries
+- optional screenshot when policy allows it
 
-Providers can receive only server-prepared, redacted structured input:
+### Sensitive-site defaults
 
-- preference profile
-- site setting
-- page summary
-- optional previous accepted plan
-- optional screenshot, only if policy allows it
+Remote planning is blocked by default for likely login, payment, banking, mail, healthcare, government, password, and internal enterprise contexts.
 
-Providers do not receive:
+## 한국어
 
-- extension storage
-- browser cookies
-- session storage
-- hidden browser tabs or undocumented consumer sessions
+Morph UI는 privacy 동작을 명시적으로 드러내도록 설계되어 있습니다.
 
-## Sensitive-site policy
+### Privacy mode
 
-Morph UI blocks remote text and screenshot planning by default for likely sensitive contexts.
+- `strict-local`
+  원격 planning 금지, 로컬 캐시 transform만 허용
+- `local-first`
+  기본 모드, 로컬 분석과 캐시를 우선하고 정책이 허용할 때만 원격 planning 허용
+- `sync-enabled`
+  local-first와 같은 planning 정책에 원격 artifact sync가 추가됨
 
-Current heuristics include:
+### 로컬에만 남는 것
 
-- login and auth paths
-- checkout and payment paths
-- banking hints
-- webmail hints
-- healthcare hints
-- government hints
-- password-related paths
-- likely internal enterprise URLs
+- 사이트 enable 플래그
+- 선택된 프로필
+- 동기화 설정
+- 진단 정보
+- 로컬 transform 캐시
 
-The shared heuristic lives in `packages/config`.
+### 서버로 갈 수 있는 것
 
-## Screenshot policy
+- redacted page summary
+- fingerprint
+- 선택한 프로필
+- 선택한 사이트 설정
+- 승인된 transform artifact
+- feedback event
 
-Screenshots are not part of the default happy path. They are secondary and optional.
+### AI provider로 갈 수 있는 것
 
-Screenshot usage is allowed only when:
+- redacted structural summary
+- 정책이 허용하는 경우의 선택적 screenshot
 
-- the site is enabled
-- privacy mode allows remote planning
-- the site is not considered sensitive
-- screenshot-on-miss is enabled
-- the current situation actually benefits from a screenshot
+### 민감 사이트 기본 정책
 
-In this repository, screenshots are treated as optional request payloads and are not persisted in the local artifact store. Only a hash or related metadata may be cached.
-
-## Redaction policy
-
-Before provider calls, Morph UI redacts or excludes likely sensitive values.
-
-Examples:
-
-- password input values
-- hidden CSRF-like token fields
-- obvious token strings
-- email values when not needed
-- payment card-like values
-- contenteditable private content flagged as sensitive
-- obvious secret material in code or config-like blocks
-
-The intent is to send structural context and safe summaries, not user secrets.
-
-## Product auth versus provider auth
-
-Morph UI product sign-in is separate from AI provider identity.
-
-That means:
-
-- the user signs into Morph UI
-- the server authenticates Morph UI requests
-- providers are called with server-owned credentials
-- the extension never stores provider secrets
-
-This separation is intentional. It avoids pretending that a browser extension can safely and officially reuse a consumer ChatGPT or Gemini subscription when that flow is not supported here.
-
-## Local and remote deletion model
-
-Current storage classes:
-
-- local extension storage
-- local IndexedDB artifact cache
-- remote per-user cache
-- feedback and run history in Postgres
-
-Current clearing behavior:
-
-- site reset removes local artifacts for the origin
-- local storage can be cleared by extension reinstall or by explicit storage cleanup paths
-- remote cache writes are optional and per-user
-
-## Review posture
-
-Morph UI is built to be explainable during security or store review:
-
-- no remote code execution
-- no scraping of provider web apps
-- no hidden data collection model
-- no surprise screenshots by default
-- no claim of consumer subscription reuse
+로그인, 결제, 은행, 메일, 헬스케어, 정부, 비밀번호, 사내 시스템으로 보이는 맥락에서는 원격 planning이 기본적으로 차단됩니다.

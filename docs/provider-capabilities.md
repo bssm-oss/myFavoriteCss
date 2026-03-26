@@ -1,114 +1,69 @@
 # Provider capabilities
 
-Morph UI uses a provider abstraction so the extension UI can describe actual supported behavior rather than implying unsupported auth or billing paths.
+## English
 
-## Capability fields
-
-The current capability model includes:
-
-- `canUseOfficialOAuth`
-- `canUseServerOwnedApiKey`
-- `supportsVisionInput`
-- `supportsStructuredOutput`
-- `supportsConsumerAccountReuse`
-- `status`
-- `supportedModes`
-- `limitationReason`
-
-The extension displays these capabilities rather than inventing consumer-account flows.
-
-## Supported providers
+Morph UI exposes provider capabilities as implemented.
 
 ### OpenAI
-
-Current Morph UI posture:
 
 - `canUseOfficialOAuth`: `false`
 - `canUseServerOwnedApiKey`: `true`
 - `supportsVisionInput`: `true`
 - `supportsStructuredOutput`: `true`
 - `supportsConsumerAccountReuse`: `false`
-- `status`: limited but supported
-- `supportedModes`: server-owned API
 
-Meaning in practice:
+Meaning:
 
-- Morph UI can call the official OpenAI API from the server.
-- Morph UI does not sign the end user into OpenAI from the extension.
-- Morph UI does not scrape `chatgpt.com`.
-- Morph UI does not reuse ChatGPT Plus.
+- official OpenAI API is supported from the server
+- ChatGPT consumer account reuse is not supported
 
 ### Gemini
 
-Current Morph UI posture:
-
-- `canUseOfficialOAuth`: exposed as a provider/platform capability
+- `canUseOfficialOAuth`: provider/platform capability exists
 - `canUseServerOwnedApiKey`: `true`
 - `supportsVisionInput`: `true`
 - `supportsStructuredOutput`: `true`
 - `supportsConsumerAccountReuse`: `false`
-- `status`: limited but supported
-- `supportedModes`: server-owned API
 
-Meaning in practice:
+Meaning:
 
-- Morph UI can call the official Gemini API from the server.
-- Morph UI does not reuse Gemini Advanced or browser sessions.
-- Morph UI does not build brittle browser-cookie-based auth flows.
+- official Gemini API is supported from the server
+- Gemini Advanced subscription reuse is not supported
 
-## Product auth is separate
+### Product auth versus provider auth
 
-Morph UI product authentication is not the same thing as provider authentication.
+Morph UI product sign-in uses Google OAuth. Provider execution uses server-owned credentials. These are separate concepts.
 
-Current product auth:
+## 한국어
 
-- Google OAuth into Morph UI itself
-- extension receives a one-time exchange code via `chrome.identity.launchWebAuthFlow`
-- backend exchanges that for Morph UI access and refresh tokens
+Morph UI는 실제로 구현된 capability만 노출합니다.
 
-Current provider execution:
+### OpenAI
 
-- provider secrets stay server-side
-- server decides which provider adapter to call
-- server normalizes provider responses back into the shared `TransformPlan`
+- `canUseOfficialOAuth`: `false`
+- `canUseServerOwnedApiKey`: `true`
+- `supportsVisionInput`: `true`
+- `supportsStructuredOutput`: `true`
+- `supportsConsumerAccountReuse`: `false`
 
-## Why consumer account reuse is intentionally unsupported
+의미:
 
-The repository deliberately does not claim:
+- 서버에서 공식 OpenAI API 호출은 지원
+- ChatGPT 소비자 계정 재사용은 지원하지 않음
 
-- "Sign in with ChatGPT"
-- "Use your existing ChatGPT Plus plan"
-- "Use your existing Gemini Advanced plan"
+### Gemini
 
-unless there is an official and implemented flow for that exact behavior.
+- `canUseOfficialOAuth`: provider/platform 수준 capability는 존재
+- `canUseServerOwnedApiKey`: `true`
+- `supportsVisionInput`: `true`
+- `supportsStructuredOutput`: `true`
+- `supportsConsumerAccountReuse`: `false`
 
-The project avoids:
+의미:
 
-- cookie scraping
-- session reuse tricks
-- hidden browser tabs for auth theft
-- undocumented provider web session coupling
+- 서버에서 공식 Gemini API 호출은 지원
+- Gemini Advanced 구독 재사용은 지원하지 않음
 
-## UI implications
+### 제품 인증과 provider 인증
 
-The side panel should tell the user:
-
-- which provider is selected
-- whether structured output is available
-- whether screenshots are supported
-- whether official OAuth is available in this product path
-- whether consumer account reuse is unsupported
-
-This matters because the capability display is part of the trust model.
-
-## Failure behavior
-
-If a provider path is unsupported or misconfigured:
-
-- the system returns a typed provider capability error
-- the UI should explain the limitation
-- the extension should not crash or pretend the provider is available
-
-## Future extension points
-
-The abstraction is built so official provider-account linking could be added later if a supported flow exists. That would be an additive capability, not a rewrite of the whole planning system.
+Morph UI 제품 로그인은 Google OAuth를 사용합니다. Provider 실행은 서버 소유 credential을 사용합니다. 둘은 별개의 개념입니다.

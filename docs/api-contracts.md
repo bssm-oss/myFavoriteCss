@@ -1,274 +1,111 @@
 # API contracts
 
-This document describes the currently implemented server API surface and the shared request and response contracts behind it.
+## English
 
-The canonical schema definitions live in `packages/shared/src/api.ts`.
+Canonical request and response schemas live in `packages/shared/src/api.ts`.
 
-## Auth routes
+### Auth routes
 
-### `GET /api/auth/google/start`
+- `GET /api/auth/google/start`
+  starts Morph UI product sign-in with Google OAuth
+- `GET /api/auth/google/callback`
+  completes the OAuth callback and redirects back to the extension with a one-time exchange code
+- `POST /api/auth/session/exchange`
+  exchanges the one-time code for Morph UI access and refresh tokens
+- `POST /api/auth/session/refresh`
+  refreshes the Morph UI access token
 
-Purpose:
+### Provider route
 
-- starts Morph UI product sign-in via Google OAuth
-- used by the extension through `chrome.identity.launchWebAuthFlow`
+- `GET /api/provider/capabilities`
+  returns capability cards for OpenAI and Gemini
 
-Query parameters:
+### Profile routes
 
-- `extensionRedirectUri`
-- `state`
-- `codeChallenge`
+- `GET /api/profiles`
+- `POST /api/profiles`
 
-Behavior:
+### Site setting routes
 
-- validates query params
-- creates an auth flow record
-- redirects to the Google authorization URL
+- `GET /api/site-settings`
+- `POST /api/site-settings`
 
-### `GET /api/auth/google/callback`
+### Cache routes
 
-Purpose:
+- `POST /api/cache/lookup`
+  looks up a per-user remote cache artifact
+- `POST /api/cache/save`
+  saves an accepted artifact to the remote cache
 
-- server-side OAuth callback endpoint
+### Transform route
 
-Behavior:
+- `POST /api/transform/plan`
+  validates input, calls the selected provider, validates the provider response, compiles the transform, and returns a provider-independent payload
 
-- validates `code` and `state`
-- completes Google callback handling
-- redirects back to the extension redirect URI with a one-time exchange code
+### Feedback route
 
-### `POST /api/auth/session/exchange`
+- `POST /api/feedback`
+  stores accept, reject, tweak, undo, or reset feedback and can append learned adjustments to a profile
 
-Purpose:
+### Error handling
 
-- exchanges a one-time extension code for Morph UI session tokens
-
-Request:
-
-```json
-{
-  "exchangeCode": "string",
-  "codeVerifier": "string"
-}
-```
-
-Response:
+The current Fastify error handler returns:
 
 ```json
-{
-  "accessToken": "string",
-  "refreshToken": "string",
-  "user": {
-    "id": "string",
-    "email": "user@example.com",
-    "name": "User",
-    "avatarUrl": "https://example.com/avatar.png"
-  },
-  "expiresAt": "2026-03-26T00:00:00.000Z"
-}
+{ "error": "message" }
 ```
 
-### `POST /api/auth/session/refresh`
+## 한국어
 
-Purpose:
+정식 요청/응답 스키마는 `packages/shared/src/api.ts`에 있습니다.
 
-- refreshes a Morph UI access token using the refresh token
+### 인증 라우트
 
-Request:
+- `GET /api/auth/google/start`
+  Google OAuth로 Morph UI 제품 로그인 시작
+- `GET /api/auth/google/callback`
+  OAuth 콜백 완료 후 one-time exchange code를 붙여 확장으로 리다이렉트
+- `POST /api/auth/session/exchange`
+  one-time code를 Morph UI access/refresh token으로 교환
+- `POST /api/auth/session/refresh`
+  Morph UI access token 갱신
+
+### Provider 라우트
+
+- `GET /api/provider/capabilities`
+  OpenAI/Gemini capability 카드 반환
+
+### 프로필 라우트
+
+- `GET /api/profiles`
+- `POST /api/profiles`
+
+### 사이트 설정 라우트
+
+- `GET /api/site-settings`
+- `POST /api/site-settings`
+
+### 캐시 라우트
+
+- `POST /api/cache/lookup`
+  사용자별 원격 캐시 아티팩트 조회
+- `POST /api/cache/save`
+  승인된 아티팩트를 원격 캐시에 저장
+
+### 변환 라우트
+
+- `POST /api/transform/plan`
+  입력 검증, 선택된 provider 호출, provider 응답 검증, transform 컴파일, provider 독립 payload 반환
+
+### 피드백 라우트
+
+- `POST /api/feedback`
+  accept/reject/tweak/undo/reset 피드백 저장 및 profile learned adjustment 반영 가능
+
+### 에러 처리
+
+현재 Fastify 에러 핸들러는 다음 형태를 반환합니다.
 
 ```json
-{
-  "refreshToken": "string"
-}
+{ "error": "message" }
 ```
-
-## Provider routes
-
-### `GET /api/provider/capabilities`
-
-Purpose:
-
-- returns provider capability cards used by the extension UI
-
-Response:
-
-- array of capability objects
-- includes provider status and limitation reason
-
-## Profile routes
-
-### `GET /api/profiles`
-
-Purpose:
-
-- returns all profiles belonging to the authenticated user
-
-### `POST /api/profiles`
-
-Purpose:
-
-- upserts a profile for the authenticated user
-
-Request body:
-
-- `PreferenceProfile` schema from `packages/shared/src/preferences.ts`
-
-Notes:
-
-- `structuredPreferences` is strongly typed and validated
-- `learnedAdjustments` is persisted as JSON
-
-## Site settings routes
-
-### `GET /api/site-settings`
-
-Purpose:
-
-- returns all site-level settings for the authenticated user
-
-### `POST /api/site-settings`
-
-Purpose:
-
-- upserts the site setting for a given origin
-
-Request body:
-
-- `SiteSetting` schema from `packages/shared/src/preferences.ts`
-
-## Cache routes
-
-### `POST /api/cache/lookup`
-
-Purpose:
-
-- asks the remote per-user cache for the best artifact matching a page and profile
-
-Request:
-
-```json
-{
-  "origin": "https://example.com",
-  "normalizedUrl": "https://example.com/docs/article",
-  "pathSignature": "abcd1234",
-  "profileId": "profile-id",
-  "fingerprint": {}
-}
-```
-
-Response:
-
-```json
-{
-  "status": "hit",
-  "similarity": 0.93,
-  "cacheKey": "fingerprint-hash",
-  "plan": {},
-  "compiled": {},
-  "revalidateAfter": "2026-03-26T00:00:00.000Z"
-}
-```
-
-Status values:
-
-- `hit`
-- `stale-hit`
-- `miss`
-
-### `POST /api/cache/save`
-
-Purpose:
-
-- persists an accepted transform artifact to the remote per-user cache
-
-Request body:
-
-- origin and normalized URL
-- profile ID
-- fingerprint
-- confidence and TTL
-- logical plan
-- compiled transform
-
-Response:
-
-- `204 No Content`
-
-## Transform route
-
-### `POST /api/transform/plan`
-
-Purpose:
-
-- asks the selected provider to generate a strict `TransformPlan`
-- validates and compiles the result
-- returns provider-independent transform data to the extension
-
-Request body:
-
-- `provider`
-- `profile`
-- `siteSetting`
-- `pageSummary`
-- `fingerprint`
-- optional `screenshot`
-- optional `previousPlan`
-
-Response body:
-
-```json
-{
-  "provider": "openai",
-  "cacheStatus": "planned",
-  "plan": {},
-  "compiled": {},
-  "cachePolicy": {
-    "ttlSeconds": 604800,
-    "allowRemoteSave": true,
-    "revalidateAfterSeconds": 151200
-  }
-}
-```
-
-Rules:
-
-- request body is parsed through Zod
-- strict-local privacy mode blocks remote planning
-- provider output is normalized back into the shared plan type
-- compiled CSS is property-allowlisted
-
-## Feedback route
-
-### `POST /api/feedback`
-
-Purpose:
-
-- stores accept, reject, tweak, undo, or reset events
-- may also append learned adjustments to a persisted profile
-
-Request:
-
-```json
-{
-  "eventType": "accept",
-  "cacheKey": "optional-cache-key",
-  "pageContext": {
-    "origin": "https://example.com",
-    "normalizedUrl": "https://example.com/docs/article",
-    "profileId": "profile-id"
-  },
-  "payload": {}
-}
-```
-
-## Error handling
-
-Fastify routes currently use a single error handler that converts thrown validation or runtime errors into a `400` response body:
-
-```json
-{
-  "error": "message"
-}
-```
-
-This is intentionally simple for local development and extension integration.
