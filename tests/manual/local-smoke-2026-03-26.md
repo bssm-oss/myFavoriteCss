@@ -1,47 +1,34 @@
 # Local smoke run - 2026-03-26
 
-This file records a real local usage pass executed against the current repository state.
+## English
 
-## Environment
+This file records a real local smoke pass executed against the repository.
+
+### Environment
 
 - date: `2026-03-26`
 - fixture host: `http://127.0.0.1:4173`
-- browser automation: Playwright CLI and the extension E2E harness
+- tools: Playwright CLI and extension E2E harness
 
-## Commands executed
+### Commands executed
 
 ```bash
 pnpm --filter @morph-ui/web exec vite --host 127.0.0.1 --port 4173
 pnpm test:e2e
 ```
 
-Playwright CLI sessions were then used to open fixture pages directly and collect observations.
+### Verified extension baseline
 
-## Verified extension baseline
-
-Command:
-
-```bash
-pnpm test:e2e
-```
-
-Observed result:
-
-- passed
+- `pnpm test:e2e` passed
 - current spec: `apps/extension/tests/e2e.spec.ts`
-- scope: verifies fixture site load plus unpacked extension runtime boot
+- covered: fixture site load plus extension runtime boot
 
-## Verified article fixture
+### Verified article fixture
 
-URL:
-
-- `http://127.0.0.1:4173/fixtures/article`
-
-Observed values:
-
-- `h1`: `Designing calmer reading experiences on dense news pages`
-- heading count for `h2, h3`: `3`
-- page rendered normally in browser automation
+- URL: `http://127.0.0.1:4173/fixtures/article`
+- observed `h1`: `Designing calmer reading experiences on dense news pages`
+- observed `h2, h3` count: `3`
+- console note: only `/favicon.ico` 404 observed
 
 Artifacts:
 
@@ -49,22 +36,13 @@ Artifacts:
 - `output/playwright/2026-03-26/article-fixture-snapshot.yml`
 - `output/playwright/2026-03-26/article-fixture-console.log`
 
-Console note:
+### Verified form fixture
 
-- only observed console error was a `404` for `/favicon.ico`
-
-## Verified form fixture
-
-URL:
-
-- `http://127.0.0.1:4173/fixtures/form`
-
-Observed values:
-
-- `h1`: `Checkout`
-- `document.forms.length`: `1`
-- `document.querySelectorAll('input, textarea, select').length`: `3`
-- page rendered normally in browser automation
+- URL: `http://127.0.0.1:4173/fixtures/form`
+- observed `h1`: `Checkout`
+- observed `document.forms.length`: `1`
+- observed form control count: `3`
+- console note: only `/favicon.ico` 404 observed
 
 Artifacts:
 
@@ -72,14 +50,52 @@ Artifacts:
 - `output/playwright/2026-03-26/form-fixture-snapshot.yml`
 - `output/playwright/2026-03-26/form-fixture-console.log`
 
-Console note:
+## 한국어
 
-- only observed console error was a `404` for `/favicon.ico`
+이 파일은 저장소에 대해 실제로 수행한 로컬 스모크 실행 기록입니다.
 
-## Summary
+### 환경
 
-This smoke pass confirmed three things:
+- 날짜: `2026-03-26`
+- fixture 호스트: `http://127.0.0.1:4173`
+- 사용 도구: Playwright CLI와 extension E2E harness
 
-- the local fixture app was reachable and rendered expected fixture content
-- the extension E2E baseline still passed
-- the docs can safely reference concrete, recently observed local fixture behavior instead of only describing intended behavior
+### 실행한 명령
+
+```bash
+pnpm --filter @morph-ui/web exec vite --host 127.0.0.1 --port 4173
+pnpm test:e2e
+```
+
+### 확인한 extension baseline
+
+- `pnpm test:e2e` 통과
+- 현재 spec: `apps/extension/tests/e2e.spec.ts`
+- 검증 범위: fixture 사이트 로드와 extension runtime 부팅
+
+### 확인한 article fixture
+
+- URL: `http://127.0.0.1:4173/fixtures/article`
+- 관측한 `h1`: `Designing calmer reading experiences on dense news pages`
+- 관측한 `h2, h3` 개수: `3`
+- 콘솔 메모: `/favicon.ico` 404만 관측
+
+아티팩트:
+
+- `output/playwright/2026-03-26/article-fixture.png`
+- `output/playwright/2026-03-26/article-fixture-snapshot.yml`
+- `output/playwright/2026-03-26/article-fixture-console.log`
+
+### 확인한 form fixture
+
+- URL: `http://127.0.0.1:4173/fixtures/form`
+- 관측한 `h1`: `Checkout`
+- 관측한 `document.forms.length`: `1`
+- 관측한 form control 개수: `3`
+- 콘솔 메모: `/favicon.ico` 404만 관측
+
+아티팩트:
+
+- `output/playwright/2026-03-26/form-fixture.png`
+- `output/playwright/2026-03-26/form-fixture-snapshot.yml`
+- `output/playwright/2026-03-26/form-fixture-console.log`

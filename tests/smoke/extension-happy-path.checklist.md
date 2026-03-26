@@ -1,40 +1,59 @@
 # Extension happy path checklist
 
-Use this checklist when validating a local Morph UI build manually.
+## English
 
-## Preconditions
+### Preconditions
 
-- `pnpm dev:server` is running
-- `pnpm dev:web` is running
-- `pnpm dev:extension` or `pnpm --filter @morph-ui/extension build` has produced `apps/extension/dist`
-- the unpacked extension is loaded in Chrome
+- `pnpm local:setup` completed
+- `pnpm local:dev` running
+- unpacked extension loaded from `apps/extension/dist`
 
-## Flow
+### Flow
 
 1. Open `http://localhost:5173/fixtures/article`
-2. Open the Morph UI side panel
-3. Enable the site and grant origin permission
-4. Select the `Reader Focus` profile
-5. Preview the transform
-6. Apply the transform
-7. Undo the transform
-8. Re-apply the transform
-9. Reload the page
-10. Confirm cached reapply behavior
+2. Open the side panel
+3. Enable the site
+4. Select `Reader Focus`
+5. Preview
+6. Apply
+7. Undo
+8. Re-apply
+9. Reload
+10. Confirm cache reuse
 
-## Expected results
+### Expected result
 
-- site enablement persists
-- preview applies without breaking the page
+- enablement persists
+- preview does not break the page
 - undo restores the page
-- re-apply succeeds
-- reload can use cached state instead of forcing a new plan every time
-- diagnostics show a sensible cache status
+- apply works again
+- reload can reuse cached state
 
-## Automated baseline
+## 한국어
 
-The current repo-level extension smoke baseline is:
+### 사전 조건
 
-```bash
-pnpm test:e2e
-```
+- `pnpm local:setup` 완료
+- `pnpm local:dev` 실행 중
+- `apps/extension/dist`에서 unpacked extension 로드 완료
+
+### 흐름
+
+1. `http://localhost:5173/fixtures/article` 열기
+2. 사이드패널 열기
+3. 사이트 enable
+4. `Reader Focus` 선택
+5. Preview
+6. Apply
+7. Undo
+8. 다시 Apply
+9. 새로고침
+10. 캐시 재사용 확인
+
+### 기대 결과
+
+- enable 상태가 유지됨
+- preview가 페이지를 망가뜨리지 않음
+- undo가 페이지를 복원함
+- 다시 apply 가능
+- 새로고침 후 캐시를 재사용할 수 있음

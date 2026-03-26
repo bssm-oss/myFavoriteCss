@@ -1,10 +1,8 @@
 # Testing fixtures and validation strategy
 
-Morph UI uses a mix of schema tests, browser-safe unit tests, backend integration tests, and extension E2E smoke coverage.
+## English
 
-## Fixture pages
-
-`apps/web` exposes deterministic fixture routes:
+`apps/web` exposes deterministic local fixture routes:
 
 - `/fixtures/article`
 - `/fixtures/ecommerce`
@@ -12,137 +10,52 @@ Morph UI uses a mix of schema tests, browser-safe unit tests, backend integratio
 - `/fixtures/docs`
 - `/fixtures/form`
 
-These pages are intentionally stable and shaped to stress different heuristics.
+These routes are used for:
 
-## Why fixture pages exist
-
-They provide repeatable local targets for:
-
-- page type guessing
+- page type heuristics
 - fingerprint stability
-- stable selector generation
-- privacy mode behavior
-- cache-hit replay
-- extension boot and runtime verification
+- selector stability
+- privacy checks
+- extension smoke coverage
 
-## Fixture coverage by page type
+### Test layers
 
-### Article fixture
+- unit tests in packages and extension helpers
+- backend integration test with Testcontainers
+- extension E2E with Playwright
+- root-level manual smoke notes under `tests/`
 
-Used to validate:
-
-- reader-focused transforms
-- centered main content
-- heading extraction
-- noisy sidebar detection
-
-### Ecommerce fixture
-
-Used to validate:
-
-- card-heavy heuristics
-- preference signals for list-over-card layouts
-- dense catalog profiles
-
-### Dashboard fixture
-
-Used to validate:
-
-- metric emphasis
-- compact versus calm dashboard transforms
-- shorter TTL behavior for dynamic-looking layouts
-
-### Docs fixture
-
-Used to validate:
-
-- TOC behavior
-- content-width tuning
-- docs-like page-type heuristics
-
-### Form fixture
-
-Used to validate:
-
-- form-heavy classification
-- sensitive-field handling
-- privacy rules on pages with richer user input structure
-
-## Unit tests
-
-Current unit coverage includes:
-
-- normalized URL behavior
-- cache key logic
-- fingerprint similarity logic
-- selector stability logic
-- privacy redaction logic
-- shared Zod schema validation
-
-## Backend integration test
-
-The backend integration test uses Testcontainers and a real Postgres instance to verify:
-
-- authenticated `POST /api/transform/plan`
-- provider response normalization
-- compiled transform payload generation
-- persistence behavior around transform runs
-
-Run it with:
-
-```bash
-pnpm test:integration
-```
-
-## Extension E2E test
-
-The current Playwright harness verifies:
-
-- extension build exists
-- fixture web server boots
-- Chromium loads the unpacked extension
-- a fixture page is reachable with the extension runtime active
-
-Run it with:
-
-```bash
-pnpm test:e2e
-```
-
-## Full verification commands
-
-Recommended local verification sequence:
-
-```bash
-pnpm typecheck
-pnpm test
-pnpm test:integration
-pnpm test:e2e
-pnpm build
-```
-
-## Real local usage notes
-
-This repository also includes a root-level smoke record from an actual local run:
+### Real local evidence
 
 - `tests/manual/local-smoke-2026-03-26.md`
-
-That run confirmed:
-
-- the fixture web app booted successfully on `127.0.0.1:4173`
-- the extension E2E baseline passed
-- the article fixture rendered the expected article heading
-- the form fixture rendered the expected checkout heading and input structure
-
-Related evidence files are stored under:
-
 - `output/playwright/2026-03-26/`
 
-## Current scope and future work
+## 한국어
 
-Current tests strongly cover contracts and boot/runtime safety. The next natural expansions are:
+`apps/web`는 결정적인 로컬 fixture 라우트를 제공합니다.
 
-- deeper side-panel interaction E2E
-- more cache-revalidation scenarios
-- more selector-drift regressions
-- richer fixture pages with controlled SPA transitions
+- `/fixtures/article`
+- `/fixtures/ecommerce`
+- `/fixtures/dashboard`
+- `/fixtures/docs`
+- `/fixtures/form`
+
+이 라우트들은 다음 용도로 사용됩니다.
+
+- 페이지 타입 휴리스틱 검증
+- fingerprint 안정성 검증
+- selector 안정성 검증
+- privacy 체크
+- 확장 스모크 검증
+
+### 테스트 계층
+
+- packages와 extension helper의 unit test
+- Testcontainers 기반 backend integration test
+- Playwright 기반 extension E2E
+- `tests/` 아래 루트 수동 smoke 기록
+
+### 실제 로컬 증거
+
+- `tests/manual/local-smoke-2026-03-26.md`
+- `output/playwright/2026-03-26/`

@@ -1,34 +1,55 @@
 # Root test assets
 
-This folder is for cross-cutting smoke and manual verification artifacts that sit above the colocated unit, integration, and extension E2E suites.
+## English
 
-## What belongs here
+This folder is for human-readable verification assets above the colocated automated test suites.
 
-- human-readable smoke checklists
-- manual regression charters
-- dated execution notes from real local runs
-- links to screenshots and browser artifacts captured during those runs
+What belongs here:
 
-## What does not belong here
+- smoke checklists
+- manual regression notes
+- dated local run records
+- links to screenshots and evidence
+
+What does not belong here:
 
 - package unit tests
-- extension Vitest files
-- server Vitest files
-- Playwright spec sources already colocated under app packages
+- server Vitest source
+- extension Vitest or Playwright source files
 
-Those remain where they already live:
+Those stay near the code in:
 
 - `apps/extension/tests`
 - `apps/server/src/tests`
 - `packages/*/src/*.test.ts`
 
-## Structure
+Related contributor workflow:
 
-- `smoke/`
-  deterministic release-gate style checklists
-- `manual/`
-  dated notes from actual local usage
-- `evidence/`
-  references to captured artifacts
+- [../CONTRIBUTING.md](../CONTRIBUTING.md)
 
-Actual browser artifacts for the runs documented here are stored in `output/playwright/`.
+## 한국어
+
+이 폴더는 코드 근처에 있는 자동 테스트와 별개로, 사람이 읽는 검증 자산을 두는 곳입니다.
+
+여기에 들어가는 것:
+
+- smoke 체크리스트
+- 수동 회귀 테스트 노트
+- 날짜가 붙은 로컬 실행 기록
+- 스크린샷과 증거 파일 링크
+
+여기에 넣지 않는 것:
+
+- package unit test
+- server Vitest 소스
+- extension Vitest/Playwright 소스 파일
+
+그런 테스트들은 다음 위치에 그대로 둡니다.
+
+- `apps/extension/tests`
+- `apps/server/src/tests`
+- `packages/*/src/*.test.ts`
+
+관련 기여 가이드:
+
+- [../CONTRIBUTING.md](../CONTRIBUTING.md)
