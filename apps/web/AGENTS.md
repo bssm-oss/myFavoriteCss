@@ -15,7 +15,7 @@ The web app serves two roles:
 
 - keep fixture pages deterministic
 - avoid leaking experimental logic into fixture pages
-- do not duplicate server business logic here
+- do not duplicate extension runtime logic here
 - help/privacy pages must match the actual product behavior
 
 ### Fixture expectations
@@ -43,7 +43,7 @@ The web app serves two roles:
 
 - fixture 페이지는 deterministic하게 유지합니다.
 - 실험용 로직을 fixture 안에 섞지 않습니다.
-- 서버 비즈니스 로직을 여기서 중복 구현하지 않습니다.
+- extension 런타임 로직을 여기서 중복 구현하지 않습니다.
 - help/privacy 페이지는 실제 제품 동작과 일치해야 합니다.
 
 ### Fixture 기대사항

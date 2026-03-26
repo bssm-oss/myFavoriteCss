@@ -2,20 +2,18 @@
 
 ## English
 
-Morph UI is a production-oriented Chrome Extension plus backend for reversible UI adaptation. It analyzes the live DOM, generates a validated transformation plan, applies safe CSS and reversible DOM operations, and stores artifacts so revisits can reuse cache immediately.
+Morph UI is now an extension-only Chrome MV3 project for reversible UI adaptation.
 
-### What the product does
+It analyzes the live DOM, generates a schema-validated transform plan, applies safe CSS plus reversible DOM operations, and reuses local cache on revisit. There is no Morph UI backend, no product account system, and no server-side remote cache.
 
-Users can:
+### What changed
 
-- create a global preference profile
-- override preferences per site
-- preview a transform before applying it
-- apply, undo, and reset transforms
-- enable auto-apply for a site
-- inspect provider status, cache state, and diagnostics
-
-The system is DOM-first and CSS-first. Screenshot input is optional and secondary. Provider credentials stay on the server.
+- `apps/server` was removed
+- Morph UI no longer uses Google product sign-in
+- provider planning now runs directly from the extension background
+- users configure their own OpenAI or Gemini API key locally
+- provider configs are validated against the official API before they are stored
+- transforms and large artifacts stay in IndexedDB plus `chrome.storage`
 
 ### Fastest local start
 
@@ -24,27 +22,15 @@ pnpm local:setup
 pnpm local:dev
 ```
 
-What these commands do:
+Then:
 
-- `pnpm local:setup`
-  installs dependencies, creates `.env` if missing, starts Postgres, runs migrations and seed, and builds the extension
-- `pnpm local:dev`
-  loads `.env` and starts the server, web app, and extension dev build together
-- `pnpm local:verify`
-  runs typecheck, tests, integration test, E2E, and build
-
-### Manual local usage
-
-1. Run `pnpm local:setup`
-2. Run `pnpm local:dev`
-3. Open `chrome://extensions`
-4. Enable Developer mode
-5. Load unpacked extension from `apps/extension/dist`
-6. Visit `http://localhost:5173/fixtures/article`
-7. Open the Morph UI side panel
-8. Enable the site
-9. Choose a profile such as `Reader Focus`
-10. Preview, apply, undo, and reload to inspect cache behavior
+1. Open `chrome://extensions`
+2. Enable Developer mode
+3. Load unpacked from `apps/extension/dist`
+4. Open `http://localhost:5173/fixtures/article`
+5. Open the Morph UI side panel
+6. Paste a provider API key and click `Validate and save`
+7. Enable the site and preview/apply
 
 ### Important commands
 
@@ -53,215 +39,136 @@ pnpm local:setup
 pnpm local:dev
 pnpm local:verify
 pnpm test
-pnpm test:integration
 pnpm test:e2e
 pnpm build
 ```
-
-### Environment variables
-
-Key values in `.env`:
-
-- `SESSION_TOKEN_SECRET`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_OAUTH_REDIRECT_URI`
-- `OPENAI_API_KEY` or `GEMINI_API_KEY`
-
-The sample file is:
-
-- `.env.example`
-- detailed reference: [docs/environment-variables.md](./docs/environment-variables.md)
 
 ### Repository structure
 
 - `apps/extension`
   Chrome MV3 extension, side panel UI, background worker, content scripts
-- `apps/server`
-  Fastify backend, auth, provider adapters, cache routes, feedback routes
 - `apps/web`
-  help pages, privacy pages, and local fixture pages
+  help/privacy pages and deterministic fixture pages
 - `packages/shared`
   Zod-first contracts and shared types
 - `packages/config`
-  URL normalization, sensitive-site heuristics, seeded profiles
+  URL normalization, sensitive-site heuristics, seeded profiles, default models
 - `packages/cache`
   cache keys, similarity scoring, TTL helpers
 - `packages/ai`
-  provider abstraction, prompt building, transform compilation
+  browser-safe provider planning, prompt building, transform compilation
 - `packages/ui`
   shared React UI primitives and styles
 - `docs`
-  engineering documentation
+  bilingual engineering documentation
 - `tests`
-  root-level human-readable smoke notes and checklists
+  human-readable smoke notes and evidence
+
+### Security and privacy posture
+
+- provider API keys are stored locally in `chrome.storage.local`
+- provider keys are never synced
+- the extension requests fixed host permissions only for `https://api.openai.com/*` and `https://generativelanguage.googleapis.com/*`
+- strict-local mode blocks provider-assisted planning
+- sensitive URLs are blocked from provider-assisted planning by default
+- consumer account reuse for ChatGPT Plus and Gemini Advanced is not supported
 
 ### Documentation map
 
 - [AGENTS.md](./AGENTS.md)
 - [docs/README.md](./docs/README.md)
 - [docs/architecture.md](./docs/architecture.md)
-- [docs/api-contracts.md](./docs/api-contracts.md)
-- [docs/data-model.md](./docs/data-model.md)
-- [docs/cache-and-fingerprint.md](./docs/cache-and-fingerprint.md)
-- [docs/transform-plan-spec.md](./docs/transform-plan-spec.md)
+- [docs/extension-runtime.md](./docs/extension-runtime.md)
 - [docs/privacy-and-data-flow.md](./docs/privacy-and-data-flow.md)
 - [docs/provider-capabilities.md](./docs/provider-capabilities.md)
-- [docs/extension-runtime.md](./docs/extension-runtime.md)
-- [docs/environment-variables.md](./docs/environment-variables.md)
-- [docs/diagnostics-and-observability.md](./docs/diagnostics-and-observability.md)
-- [docs/local-development.md](./docs/local-development.md)
-- [docs/user-workflow-guide.md](./docs/user-workflow-guide.md)
-- [docs/storage-and-sync-layout.md](./docs/storage-and-sync-layout.md)
 - [docs/ai-provider-integration.md](./docs/ai-provider-integration.md)
-- [docs/backend-route-reference.md](./docs/backend-route-reference.md)
-- [docs/operations-runbook.md](./docs/operations-runbook.md)
-- [docs/release-playbook.md](./docs/release-playbook.md)
-- [docs/testing-fixtures.md](./docs/testing-fixtures.md)
-- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [docs/local-development.md](./docs/local-development.md)
+- [docs/troubleshooting.md](./docs/troubleshooting.md)
+- [docs/testing-matrix.md](./docs/testing-matrix.md)
 - [tests/README.md](./tests/README.md)
-
-### Verification already recorded in the repo
-
-- root smoke note: [tests/manual/local-smoke-2026-03-26.md](./tests/manual/local-smoke-2026-03-26.md)
-- captured evidence: [tests/evidence/README.md](./tests/evidence/README.md)
-
-### Important limitations
-
-- v1 does not reuse ChatGPT Plus or Gemini Advanced consumer subscriptions
-- provider-linked end-user billing is intentionally not implemented
-- screenshot planning is optional and privacy-gated
-- path overrides exist in schema and database but the current UX is focused on site-level flows first
 
 ## 한국어
 
-Morph UI는 기존 웹페이지를 안전하게 변형하는 프로덕션 지향 Chrome Extension + 백엔드 프로젝트입니다. 실제 DOM을 분석하고, 검증된 변환 계획을 만든 뒤, 안전한 CSS와 되돌릴 수 있는 DOM 조작을 적용하며, 재방문 시에는 캐시를 즉시 재사용할 수 있도록 아티팩트를 저장합니다.
+Morph UI는 이제 되돌릴 수 있는 UI 변형을 위한 extension-only Chrome MV3 프로젝트입니다.
 
-### 제품이 하는 일
+실제 DOM을 분석하고, 스키마 검증된 transform plan을 생성한 뒤, 안전한 CSS와 reversible DOM 조작을 적용하며, 재방문 시에는 로컬 캐시를 재사용합니다. Morph UI 백엔드, 제품 계정 시스템, 서버 측 원격 캐시는 더 이상 없습니다.
 
-사용자는 다음을 할 수 있습니다.
+### 무엇이 바뀌었나
 
-- 전역 UI 선호 프로필 생성
-- 사이트별 설정 오버라이드
-- 적용 전 미리보기
-- 적용, 되돌리기, 초기화
-- 사이트별 자동 적용 설정
-- provider 상태, 캐시 상태, 진단 정보 확인
+- `apps/server` 제거
+- Google 제품 로그인 제거
+- provider planning을 extension background에서 직접 실행
+- 사용자가 OpenAI 또는 Gemini API key를 로컬에 직접 설정
+- transform과 대용량 아티팩트는 IndexedDB와 `chrome.storage`에만 저장
 
-시스템은 DOM-first, CSS-first 전략을 사용합니다. 스크린샷 입력은 선택적이며 보조 수단입니다. Provider 비밀키는 서버에만 존재합니다.
-
-### 가장 빠른 로컬 실행
+### 가장 빠른 로컬 시작
 
 ```bash
 pnpm local:setup
 pnpm local:dev
 ```
 
-각 명령의 역할:
+그 다음:
 
-- `pnpm local:setup`
-  의존성 설치, `.env` 자동 생성, Postgres 시작, 마이그레이션/시드 실행, 확장 빌드
-- `pnpm local:dev`
-  `.env`를 읽고 서버, 웹앱, 확장 개발 빌드를 한 번에 실행
-- `pnpm local:verify`
-  타입체크, 테스트, 통합 테스트, E2E, 빌드를 한 번에 실행
+1. `chrome://extensions` 열기
+2. Developer mode 켜기
+3. `apps/extension/dist`를 unpacked로 로드
+4. `http://localhost:5173/fixtures/article` 열기
+5. Morph UI side panel 열기
+6. provider API key를 붙여 넣고 `Validate and save` 클릭
+7. 사이트 enable 후 preview/apply
 
-### 로컬에서 직접 써보는 순서
-
-1. `pnpm local:setup` 실행
-2. `pnpm local:dev` 실행
-3. `chrome://extensions` 열기
-4. Developer mode 활성화
-5. `apps/extension/dist`를 unpacked extension으로 로드
-6. `http://localhost:5173/fixtures/article` 접속
-7. Morph UI 사이드패널 열기
-8. 사이트 enable
-9. `Reader Focus` 같은 프로필 선택
-10. Preview, Apply, Undo, 새로고침 후 캐시 동작 확인
-
-### 주요 명령어
+### 주요 명령
 
 ```bash
 pnpm local:setup
 pnpm local:dev
 pnpm local:verify
 pnpm test
-pnpm test:integration
 pnpm test:e2e
 pnpm build
 ```
 
-### 환경변수
-
-`.env`에서 특히 중요한 값:
-
-- `SESSION_TOKEN_SECRET`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_OAUTH_REDIRECT_URI`
-- `OPENAI_API_KEY` 또는 `GEMINI_API_KEY`
-
-샘플 파일:
-
-- `.env.example`
-- 상세 설명: [docs/environment-variables.md](./docs/environment-variables.md)
-
 ### 저장소 구조
 
 - `apps/extension`
-  Chrome MV3 확장, 사이드패널 UI, 백그라운드 워커, 콘텐츠 스크립트
-- `apps/server`
-  Fastify 백엔드, 인증, provider adapter, 캐시/피드백 라우트
+  Chrome MV3 확장, side panel UI, background worker, content script
 - `apps/web`
-  도움말/프라이버시 페이지와 로컬 fixture 페이지
+  help/privacy 페이지와 deterministic fixture 페이지
 - `packages/shared`
-  Zod 기반 공용 스키마와 타입
+  Zod 기반 공용 계약과 타입
 - `packages/config`
-  URL 정규화, 민감 사이트 규칙, 시드 프로필
+  URL 정규화, 민감 사이트 규칙, 시드 프로필, 기본 모델
 - `packages/cache`
-  캐시 키, 유사도 계산, TTL 정책
+  cache key, similarity scoring, TTL 헬퍼
 - `packages/ai`
-  provider 추상화, 프롬프트 생성, 변환 컴파일
+  브라우저 안전 provider planning, prompt 생성, transform 컴파일
 - `packages/ui`
   공용 React UI 프리미티브와 스타일
 - `docs`
-  엔지니어링 문서
+  bilingual 엔지니어링 문서
 - `tests`
-  사람이 읽는 스모크 노트와 체크리스트
+  사람이 읽는 smoke note와 evidence
+
+### 보안과 privacy 원칙
+
+- provider API key는 `chrome.storage.local`에만 로컬 저장
+- provider key는 sync되지 않음
+- 확장은 `https://api.openai.com/*`, `https://generativelanguage.googleapis.com/*`에 대해서만 고정 host permission을 요청
+- strict-local 모드는 provider-assisted planning을 차단
+- 민감 URL은 기본적으로 provider-assisted planning에서 제외
+- ChatGPT Plus, Gemini Advanced 소비자 구독 재사용은 지원하지 않음
 
 ### 문서 인덱스
 
 - [AGENTS.md](./AGENTS.md)
 - [docs/README.md](./docs/README.md)
 - [docs/architecture.md](./docs/architecture.md)
-- [docs/api-contracts.md](./docs/api-contracts.md)
-- [docs/data-model.md](./docs/data-model.md)
-- [docs/cache-and-fingerprint.md](./docs/cache-and-fingerprint.md)
-- [docs/transform-plan-spec.md](./docs/transform-plan-spec.md)
+- [docs/extension-runtime.md](./docs/extension-runtime.md)
 - [docs/privacy-and-data-flow.md](./docs/privacy-and-data-flow.md)
 - [docs/provider-capabilities.md](./docs/provider-capabilities.md)
-- [docs/extension-runtime.md](./docs/extension-runtime.md)
-- [docs/environment-variables.md](./docs/environment-variables.md)
-- [docs/diagnostics-and-observability.md](./docs/diagnostics-and-observability.md)
-- [docs/local-development.md](./docs/local-development.md)
-- [docs/user-workflow-guide.md](./docs/user-workflow-guide.md)
-- [docs/storage-and-sync-layout.md](./docs/storage-and-sync-layout.md)
 - [docs/ai-provider-integration.md](./docs/ai-provider-integration.md)
-- [docs/backend-route-reference.md](./docs/backend-route-reference.md)
-- [docs/operations-runbook.md](./docs/operations-runbook.md)
-- [docs/release-playbook.md](./docs/release-playbook.md)
-- [docs/testing-fixtures.md](./docs/testing-fixtures.md)
-- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [docs/local-development.md](./docs/local-development.md)
+- [docs/troubleshooting.md](./docs/troubleshooting.md)
+- [docs/testing-matrix.md](./docs/testing-matrix.md)
 - [tests/README.md](./tests/README.md)
-
-### 저장소 안에 이미 남겨둔 검증 기록
-
-- 스모크 실행 기록: [tests/manual/local-smoke-2026-03-26.md](./tests/manual/local-smoke-2026-03-26.md)
-- 캡처 증거 파일: [tests/evidence/README.md](./tests/evidence/README.md)
-
-### 현재 제한사항
-
-- v1은 ChatGPT Plus, Gemini Advanced 같은 소비자 구독 재사용을 하지 않습니다
-- provider 연동형 최종 사용자 과금은 의도적으로 구현하지 않았습니다
-- 스크린샷 기반 planning은 선택적이며 privacy 규칙에 묶여 있습니다
-- path override는 스키마/DB에는 있지만 현재 UX는 사이트 단위 흐름이 우선입니다
