@@ -32,6 +32,22 @@ Then:
 6. Paste a provider API key and click `Validate and save`
 7. Enable the site and preview/apply
 
+### First-use checklist
+
+1. Start with `fixtures/article` instead of a complex app page.
+2. Use the default provider model first.
+3. Confirm `Validate and save` succeeds before enabling the site.
+4. Run `Preview` once and inspect the plan summary.
+5. Run `Apply`, refresh the page, and confirm the cache path feels instant.
+
+### Direct LLM flow
+
+1. The content script extracts a local page summary.
+2. The background worker checks IndexedDB for a strong local cache match.
+3. If local cache is weak and privacy allows it, the background worker calls the selected provider directly.
+4. The provider must return strict JSON matching the shared transform schema.
+5. Morph UI validates, compiles, previews, and stores the result locally.
+
 ### Important commands
 
 ```bash
@@ -82,7 +98,9 @@ pnpm build
 - [docs/privacy-and-data-flow.md](./docs/privacy-and-data-flow.md)
 - [docs/provider-capabilities.md](./docs/provider-capabilities.md)
 - [docs/ai-provider-integration.md](./docs/ai-provider-integration.md)
+- [docs/direct-llm-setup.md](./docs/direct-llm-setup.md)
 - [docs/local-development.md](./docs/local-development.md)
+- [docs/manual-verification-guide.md](./docs/manual-verification-guide.md)
 - [docs/troubleshooting.md](./docs/troubleshooting.md)
 - [docs/testing-matrix.md](./docs/testing-matrix.md)
 - [tests/README.md](./tests/README.md)
@@ -117,6 +135,22 @@ pnpm local:dev
 5. Morph UI side panel 열기
 6. provider API key를 붙여 넣고 `Validate and save` 클릭
 7. 사이트 enable 후 preview/apply
+
+### 첫 사용 체크리스트
+
+1. 복잡한 앱 페이지보다 먼저 `fixtures/article`에서 시작합니다.
+2. 처음에는 기본 provider 모델을 그대로 사용합니다.
+3. 사이트를 enable하기 전에 `Validate and save`가 성공하는지 확인합니다.
+4. 먼저 `Preview`를 실행해서 plan 요약을 확인합니다.
+5. `Apply` 후 새로고침해서 캐시 경로가 즉시 적용되는지 확인합니다.
+
+### 직접 LLM 호출 흐름
+
+1. content script가 로컬 페이지 요약을 추출합니다.
+2. background worker가 IndexedDB에서 강한 로컬 캐시 매치를 먼저 찾습니다.
+3. 로컬 캐시가 약하고 privacy가 허용할 때만 선택된 provider를 직접 호출합니다.
+4. provider는 공용 transform schema와 일치하는 strict JSON만 반환해야 합니다.
+5. Morph UI가 결과를 검증, 컴파일, preview하고 로컬에 저장합니다.
 
 ### 주요 명령
 
@@ -168,7 +202,9 @@ pnpm build
 - [docs/privacy-and-data-flow.md](./docs/privacy-and-data-flow.md)
 - [docs/provider-capabilities.md](./docs/provider-capabilities.md)
 - [docs/ai-provider-integration.md](./docs/ai-provider-integration.md)
+- [docs/direct-llm-setup.md](./docs/direct-llm-setup.md)
 - [docs/local-development.md](./docs/local-development.md)
+- [docs/manual-verification-guide.md](./docs/manual-verification-guide.md)
 - [docs/troubleshooting.md](./docs/troubleshooting.md)
 - [docs/testing-matrix.md](./docs/testing-matrix.md)
 - [tests/README.md](./tests/README.md)
