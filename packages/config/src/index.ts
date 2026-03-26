@@ -217,6 +217,11 @@ export const sensitivePolicy = {
   pathHints: SENSITIVE_PATH_HINTS
 };
 
+export const defaultProviderModels = {
+  openai: "gpt-4.1-mini",
+  gemini: "gemini-2.5-flash"
+} as const;
+
 export const normalizationPolicy = {
   trackingPatterns: TRACKING_PARAM_PATTERNS.map((pattern) => pattern.source),
   meaningfulParams: [...MEANINGFUL_PARAMS]

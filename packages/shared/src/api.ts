@@ -2,27 +2,13 @@ import { z } from "zod";
 
 import { pageFingerprintSchema, pageSummarySchema } from "./page-summary";
 import { pathOverrideSchema, preferenceProfileSchema, siteSettingSchema } from "./preferences";
-import { providerCapabilitiesSchema, providerSchema } from "./provider-capabilities";
+import {
+  providerCapabilitiesSchema,
+  providerConfigSummarySchema,
+  providerLocalConfigSchema,
+  providerSchema
+} from "./provider-capabilities";
 import { compiledTransformSchema, transformPlanSchema } from "./transform-plan";
-
-export const authUserSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  name: z.string(),
-  avatarUrl: z.string().url().nullable()
-});
-
-export const sessionExchangeRequestSchema = z.object({
-  exchangeCode: z.string().min(20),
-  codeVerifier: z.string().min(43)
-});
-
-export const sessionExchangeResponseSchema = z.object({
-  accessToken: z.string(),
-  refreshToken: z.string(),
-  user: authUserSchema,
-  expiresAt: z.string().datetime()
-});
 
 export const cacheLookupRequestSchema = z.object({
   origin: z.string().url(),
@@ -92,6 +78,8 @@ export const feedbackEventSchema = z.object({
 export const siteSettingsUpsertRequestSchema = siteSettingSchema;
 export const profilesUpsertRequestSchema = preferenceProfileSchema;
 export const pathOverrideUpsertRequestSchema = pathOverrideSchema;
+export const providerLocalConfigUpsertRequestSchema = providerLocalConfigSchema;
+export const providerConfigSummaryResponseSchema = z.array(providerConfigSummarySchema);
 
 export const diagnosticsSchema = z.object({
   lastCacheStatus: z.enum(["none", "hit", "stale-hit", "miss", "planned"]).default("none"),
@@ -113,9 +101,6 @@ export const syncedSettingsSchema = z.object({
 export const providerCapabilitiesResponseSchema = z.array(providerCapabilitiesSchema);
 
 export type SyncedSettings = z.infer<typeof syncedSettingsSchema>;
-export type AuthUser = z.infer<typeof authUserSchema>;
-export type SessionExchangeRequest = z.infer<typeof sessionExchangeRequestSchema>;
-export type SessionExchangeResponse = z.infer<typeof sessionExchangeResponseSchema>;
 export type CacheLookupRequest = z.infer<typeof cacheLookupRequestSchema>;
 export type CacheLookupResponse = z.infer<typeof cacheLookupResponseSchema>;
 export type CacheSaveRequest = z.infer<typeof cacheSaveRequestSchema>;
