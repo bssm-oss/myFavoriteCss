@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "useDefineForClassFields": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@morph-ui/shared": [
+        "packages/shared/src/index.ts"
+      ],
+      "@morph-ui/ui": [
+        "packages/ui/src/index.tsx"
+      ],
+      "@morph-ui/ai": [
+        "packages/ai/src/index.ts"
+      ],
+      "@morph-ui/cache": [
+        "packages/cache/src/index.ts"
+      ],
+      "@morph-ui/config": [
+        "packages/config/src/index.ts"
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker"
+    ],
+    "types": [
+      "chrome",
+      "node"
+    ]
+  },
+  "include": [
+    "background",
+    "sidepanel",
+    "popup",
+    "content",
+    "lib",
+    "tests",
+    "vite.config.ts",
+    "vite-env.d.ts"
+  ]
+}

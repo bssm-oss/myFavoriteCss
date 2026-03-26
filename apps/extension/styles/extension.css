@@ -1,0 +1,21 @@
+.morph-loading {
+  padding: 24px;
+  font: 500 14px/1.5 Inter, system-ui, sans-serif;
+}
+
+.morph-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.morph-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.morph-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}

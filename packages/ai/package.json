@@ -1,0 +1,30 @@
+{
+  "name": "@morph-ui/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "lint": "tsc --project tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@morph-ui/cache": "workspace:*",
+    "@morph-ui/config": "workspace:*",
+    "@morph-ui/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "vitest": "^3.2.4"
+  }
+}
