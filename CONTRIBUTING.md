@@ -9,9 +9,10 @@ This repository expects small, reviewable changes with matching docs and verific
 1. Branch from `main`.
 2. Keep commits small and purpose-specific.
 3. Run the narrowest useful verification while developing.
-4. Update docs when behavior, architecture, env, or operational assumptions change.
-5. Update smoke notes or evidence when the user-facing flow materially changes.
-6. Open a PR with a clear summary and explicit risk notes.
+4. Read [AGENTS.md](./AGENTS.md) and the nearest scoped `AGENTS.md` before making non-trivial changes.
+5. Update docs when behavior, architecture, env, or operational assumptions change.
+6. Update smoke notes or evidence when the user-facing flow materially changes.
+7. Open a PR with a clear summary and explicit risk notes.
 
 ### Minimum verification before PR
 
@@ -43,9 +44,10 @@ If runtime behavior changed, also run:
 1. `main`에서 브랜치를 만듭니다.
 2. 커밋은 작고 목적이 분명하게 유지합니다.
 3. 개발 중에는 가장 좁지만 유의미한 검증을 실행합니다.
-4. 동작, 아키텍처, 환경변수, 운영 가정이 바뀌면 문서도 함께 갱신합니다.
-5. 사용자 흐름이 바뀌면 smoke note나 evidence도 갱신합니다.
-6. 명확한 요약과 위험 메모를 포함해 PR을 엽니다.
+4. 규모 있는 변경 전에는 [AGENTS.md](./AGENTS.md) 와 가장 가까운 scoped `AGENTS.md`를 읽습니다.
+5. 동작, 아키텍처, 환경변수, 운영 가정이 바뀌면 문서도 함께 갱신합니다.
+6. 사용자 흐름이 바뀌면 smoke note나 evidence도 갱신합니다.
+7. 명확한 요약과 위험 메모를 포함해 PR을 엽니다.
 
 ### PR 전 최소 검증
 
